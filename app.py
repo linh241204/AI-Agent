@@ -114,7 +114,7 @@ Hãy đánh giá tổng quan hiệu quả chiến lược nội dung hiện tạ
         if st.button("🧠 Phân tích và Gợi ý từ AI"):
             try:
                 response = client.chat.completions.create(
-                    model="gpt-4",
+                    model="gpt-3.5-turbo",
                     messages=[{"role": "user", "content": analysis_prompt}],
                     temperature=0.7
                 )
