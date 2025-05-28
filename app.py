@@ -60,22 +60,22 @@ with tab1:
     keywords = st.text_input("Từ khóa", "gốm, thủ công, mộc mạc, decor")
     platform = st.selectbox("Nền tảng", ["Facebook", "Instagram", "Threads"])
 
-    mode = st.radio("Chế độ đăng", ["📅 Tự động đúng giờ", "🔁 Đăng lặp lại hằng ngày", "👀 Chờ duyệt thủ công"])
+    mode = st.radio("Chế độ đăng", ["📅 Tự động đúng giờ", "🤖 Tự động đăng đa dạng mỗi ngày", "👀 Chờ duyệt thủ công"])
 
-    # Ngày giờ cho từng chế độ
     if mode == "📅 Tự động đúng giờ":
         date = st.date_input("📅 Ngày đăng", datetime.today())
         time = st.time_input("⏰ Giờ đăng", datetime.now().time())
         post_time = datetime.combine(date, time)
 
-    elif mode == "🔁 Đăng lặp lại hằng ngày":
-        start_date = st.date_input("📅 Ngày bắt đầu", datetime.today())
+    elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
+        start_date = st.date_input("📅 Ngày bắt đầu đăng tự động", datetime.today())
         end_date = st.date_input("📅 Ngày kết thúc", datetime.today() + timedelta(days=7))
-        repeat_time = st.time_input("⏰ Giờ đăng mỗi ngày", datetime.now().time())
+        post_time = st.time_input("⏰ Giờ đăng mỗi ngày", datetime.now().time())
 
     if st.button("✨ Xử lý bài đăng"):
         if not product_name or not keywords:
             st.warning("⚠️ Vui lòng nhập đủ thông tin.")
+
         elif mode == "📅 Tự động đúng giờ":
             with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
                 writer = csv.writer(f)
@@ -90,22 +90,25 @@ with tab1:
                 ])
             st.success(f"📅 Đã lên lịch đăng vào {post_time.strftime('%d/%m/%Y %H:%M')}")
 
-        elif mode == "🔁 Đăng lặp lại hằng ngày":
+        elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
             current_day = start_date
             while current_day <= end_date:
+                auto_caption = generate_caption(product_name, keywords, platform)
                 with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
                     writer = csv.writer(f)
                     writer.writerow([
                         product_name,
                         keywords,
                         platform,
-                        repeat_time.strftime("%H:%M"),
+                        post_time.strftime("%H:%M"),
                         os.getenv("FB_PAGE_TOKEN"),
                         os.getenv("FB_PAGE_ID"),
-                        "daily"
+                        "daily",
+                        current_day.strftime("%Y-%m-%d"),
+                        auto_caption.replace("\n", " ")
                     ])
                 current_day += timedelta(days=1)
-            st.success(f"🔁 Đã lên lịch đăng lặp lại mỗi ngày từ {start_date} đến {end_date} lúc {repeat_time.strftime('%H:%M')}")
+            st.success(f"🤖 Đã lên lịch tự động tạo & đăng bài mỗi ngày từ {start_date} đến {end_date} lúc {post_time.strftime('%H:%M')}")
 
         else:
             caption = generate_caption(product_name, keywords, platform)
