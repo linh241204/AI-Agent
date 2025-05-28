@@ -29,18 +29,20 @@ def generate_caption(product_name, keywords, platform):
     prompt = f"""
 Bạn là chuyên gia nội dung sáng tạo cho thương hiệu gốm thủ công cao cấp.
 
-Hãy viết một **bài viết marketing dài khoảng 100–150 từ** phù hợp đăng trên {platform}, để giới thiệu sản phẩm **{product_name}**, sử dụng tinh tế các từ khóa: {keywords}.
+Hãy viết một **bài viết marketing truyền cảm hứng dài khoảng 150–200 từ**, phù hợp đăng trên {platform}, để giới thiệu sản phẩm **{product_name}**, sử dụng tinh tế các từ khóa: {keywords}.
 
 Yêu cầu:
-- Ngắt đoạn rõ ràng (xuống dòng sau mỗi 1–2 câu)
-- Lồng ghép cảm xúc, triết lý sống chậm, yêu nét đẹp truyền thống
-- Dùng biểu tượng cảm xúc phù hợp (🌿✨🧘🏽‍♀️🏺❤️…)
-- Giọng văn mộc mạc, truyền cảm hứng – không quá quảng cáo
-- Kết bài nhẹ nhàng, có thể đặt câu hỏi
+- Mở đầu bằng một hình ảnh hoặc khoảnh khắc đời thường gợi cảm xúc
+- Giọng văn mộc mạc, sâu lắng, truyền cảm hứng sống chậm, yêu nét đẹp giản dị
+- Khơi gợi mong muốn sở hữu sản phẩm một cách tự nhiên, tinh tế (không "bán hàng" trực diện)
+- Lồng ghép triết lý về không gian sống, sự kết nối giữa con người và thiên nhiên qua đồ gốm
+- Ngắt đoạn mạch lạc, dùng biểu tượng cảm xúc nhẹ nhàng (🌿✨🏺❤️…)
+- Kết bài sâu sắc, có thể gợi mở cảm xúc hoặc đặt câu hỏi
 
-Cuối bài, xuống dòng riêng và gắn khoảng 3–5 hashtag, trong đó:
-- **Bắt buộc có `#xuongbinhgom`**
-- Các hashtag còn lại nên liên quan sản phẩm, cảm hứng sống chậm, thủ công, trang trí nội thất,...
+Phần cuối bài:
+- Xuống dòng riêng và gắn khoảng 3–5 hashtag, trong đó:
+  - **Bắt buộc có hashtag: #xuongbinhgom**
+  - Các hashtag còn lại nên liên quan đến: sống chậm, thủ công, gốm mộc, trang trí nhà, cảm hứng nghệ thuật...
 
 Viết 1 bài duy nhất.
 """
@@ -52,15 +54,13 @@ Viết 1 bài duy nhất.
         )
         caption = response.choices[0].message.content.strip()
 
-        # Đảm bảo có #xuongbinhgom ở phần hashtag
         if "#xuongbinhgom" not in caption.lower():
-            if not caption.endswith("#"):
-                caption += "\n\n"
-            caption += "#xuongbinhgom"
+            caption += "\n\n#xuongbinhgom"
 
         return caption
     except OpenAIError as e:
         return f"⚠️ Không gọi được GPT: {e}"
+
 
 
 
