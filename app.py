@@ -47,9 +47,13 @@ Viết 1 bài duy nhất.
             messages=[{"role": "user", "content": prompt}],
             temperature=0.95
         )
-        return response.choices[0].message.content.strip()
+        caption = response.choices[0].message.content.strip()
+        if "#xuongbinhgom" not in caption.lower():
+            caption += "\n\n#xuongbinhgom"
+        return caption
     except OpenAIError as e:
         return f"⚠️ Không gọi được GPT: {e}"
+
 
 
 # Tabs
