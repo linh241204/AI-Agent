@@ -53,8 +53,8 @@ Viết 1 bài duy nhất.
 
 # Tabs
 st.title("🧠 Trợ lý nội dung đa nền tảng")
-tab1, tab3, tab4, tab2, tab5 = st.tabs([
-    "📝 Tạo nội dung", "📊 Hiệu quả", "🎯 Gợi ý chiến lược", "🔮 Dự báo", "📥 Bài chờ duyệt"
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "📝 Tạo nội dung", "🔮 Dự báo", "📊 Hiệu quả", "🎯 Gợi ý chiến lược",  "📥 Bài chờ duyệt"
 ])
 
 with tab1:
