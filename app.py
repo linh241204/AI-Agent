@@ -1,5 +1,5 @@
 import streamlit as st
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
@@ -15,7 +15,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 if "posts" not in st.session_state:
     st.session_state.posts = []
 
-# Hàm sinh nội dung bằng OpenAI GPT-4
+# Hàm sinh nội dung bằng GPT
 def generate_caption(product_name, keywords, platform):
     prompt = f"""Bạn là chuyên gia marketing cho sản phẩm gốm thủ công.
 Hãy viết caption hấp dẫn (không quá 50 từ) cho sản phẩm '{product_name}' với các từ khóa: {keywords}. Nền tảng: {platform}."""
@@ -27,19 +27,18 @@ Hãy viết caption hấp dẫn (không quá 50 từ) cho sản phẩm '{product
             temperature=0.7
         )
         return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"Lỗi AI: {e}"
+    except OpenAIError as e:
+        return "⚠️ Lỗi: Không thể gọi GPT. Có thể bạn đã vượt quota API. Hãy kiểm tra lại key hoặc billing trên OpenAI."
 
-# Giao diện Streamlit: Tabs chính
+# Giao diện chính
 tab1, tab2, tab3 = st.tabs(["📝 Tạo nội dung", "📊 Hiệu quả marketing", "🎯 Gợi ý chiến lược"])
 
-# TAB 1: TẠO NỘI DUNG
+# TAB 1
 with tab1:
     st.header("📝 Tạo nội dung bài đăng")
     product_name = st.text_input("Tên sản phẩm")
     keywords = st.text_input("Từ khóa (phân cách bằng dấu phẩy)", "gốm, decor, thủ công, mộc mạc")
     platform = st.selectbox("Nền tảng", ["Facebook", "Instagram", "Threads"])
-
     date = st.date_input("📅 Ngày đăng", datetime.today())
     time = st.time_input("⏰ Giờ đăng", datetime.now().time())
     post_time = datetime.combine(date, time)
@@ -71,7 +70,7 @@ with tab1:
     else:
         st.info("Chưa có bài đăng nào.")
 
-# TAB 2: PHÂN TÍCH HIỆU QUẢ
+# TAB 2
 with tab2:
     st.header("📊 Tổng hợp hiệu quả bài viết")
     if st.session_state.posts:
@@ -99,7 +98,7 @@ with tab2:
     else:
         st.info("Chưa có dữ liệu bài đăng để phân tích.")
 
-# TAB 3: GỢI Ý CHIẾN LƯỢC
+# TAB 3
 with tab3:
     st.header("🎯 Gợi ý điều chỉnh chiến lược nội dung")
     if st.session_state.posts:
@@ -121,7 +120,7 @@ Hãy đánh giá tổng quan hiệu quả chiến lược nội dung hiện tạ
                 suggestions = response.choices[0].message.content.strip()
                 st.success("🎯 Dưới đây là phân tích và gợi ý từ AI:")
                 st.markdown(suggestions)
-            except Exception as e:
-                st.error(f"Lỗi khi gọi OpenAI: {e}")
+            except OpenAIError as e:
+                st.error("⚠️ Lỗi GPT: Vượt hạn mức hoặc không gọi được AI.")
     else:
         st.warning("⚠️ Vui lòng tạo bài viết và cập nhật số liệu trước.")
