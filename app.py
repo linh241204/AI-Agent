@@ -66,6 +66,8 @@ with tab1:
         date = st.date_input("📅 Ngày đăng", datetime.today())
         time = st.time_input("⏰ Giờ đăng", datetime.now().time())
         post_time = datetime.combine(date, time)
+        caption = generate_caption(product_name, keywords, platform)
+        st.text_area("📋 Nội dung đề xuất", caption, height=150)
 
     elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
         start_date = st.date_input("📅 Ngày bắt đầu đăng tự động", datetime.today())
@@ -86,7 +88,9 @@ with tab1:
                     post_time.strftime("%H:%M"),
                     os.getenv("FB_PAGE_TOKEN"),
                     os.getenv("FB_PAGE_ID"),
-                    "once"
+                    "once",
+                    date.strftime("%Y-%m-%d"),
+                    caption.replace("\n", " ")
                 ])
             st.success(f"📅 Đã lên lịch đăng vào {post_time.strftime('%d/%m/%Y %H:%M')}")
 
@@ -128,7 +132,6 @@ with tab1:
         st.dataframe(pd.DataFrame(st.session_state.posts))
     else:
         st.info("Chưa có bài viết nào.")
-
 
 
 with tab2:
