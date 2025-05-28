@@ -79,6 +79,14 @@ with tab1:
         "📅 Tự động đúng giờ",
         "🤖 Tự động đăng đa dạng mỗi ngày",
         "👀 Chờ duyệt thủ công"])
+if 'last_mode' not in st.session_state:
+    st.session_state.last_mode = mode
+
+# Nếu mode thay đổi, reset các time keys
+if mode != st.session_state.last_mode:
+    st.session_state.pop("post_time_once", None)
+    st.session_state.pop("post_time_loop", None)
+    st.session_state.last_mode = mode
 
     if mode == "📅 Tự động đúng giờ":
         post_date = st.date_input("📅 Ngày đăng", datetime.today(), key="post_date_once")
