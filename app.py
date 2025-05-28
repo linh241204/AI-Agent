@@ -202,39 +202,43 @@ Hãy đánh giá hiệu quả nội dung và đề xuất 3 cách cải thiện.
 
 with tab4:
     st.header("🔮 Dự báo hiệu quả bài viết")
-    caption_forecast = st.text_area("✍️ Nhập caption dự kiến", "")
+    caption_forecast = st.text_area("✍️ Nhập caption dự kiến")
     platform_forecast = st.selectbox("📱 Nền tảng đăng", ["Facebook", "Instagram", "Threads"], key="forecast_platform")
     date_forecast = st.date_input("📅 Ngày dự kiến đăng", datetime.today(), key="forecast_date")
     time_forecast = st.time_input("⏰ Giờ dự kiến đăng", datetime.now().time(), key="forecast_time")
     post_time_forecast = datetime.combine(date_forecast, time_forecast)
 
-if st.button("🔍 Phân tích & Dự báo"):
-    prompt = f"""
-Bạn là một chuyên gia digital marketing, có kinh nghiệm phân tích nội dung mạng xã hội.
+    if st.button("🔍 Phân tích & Dự báo"):
+        df = pd.DataFrame(st.session_state.posts)
+        time_stats = df.groupby(df['time'])[['likes', 'comments', 'shares', 'reach', 'reactions']].mean().to_dict() if not df.empty else {}
 
-Hãy dự đoán hiệu quả của bài viết dưới đây trên nền tảng {platform_forecast} nếu được đăng vào lúc {post_time_forecast.strftime("%H:%M %d/%m/%Y")}.
+        prompt = f"""
+Bạn là chuyên gia digital marketing.
+Dựa trên dữ liệu lịch sử các bài đăng và nội dung sau, hãy dự đoán hiệu quả bài viết.
 
-Nội dung:
-\"\"\"
-{caption_forecast}
-\"\"\"
-
-Hãy trả lời các phần sau:
-1. 🎯 Dự đoán hiệu quả (cao / trung bình / thấp)
-2. 📊 Ước lượng số lượt tiếp cận (reach), tương tác (likes), bình luận (comments), chia sẻ (shares)
-3. 🧠 Giải thích ngắn gọn lý do
-4. 💡 Gợi ý cách viết lại nếu cần
+- Nền tảng: {platform_forecast}
+- Thời gian đăng: {post_time_forecast.strftime('%H:%M %d/%m/%Y')}
+- Nội dung:
 """
+{caption_forecast}
+"""
+- Thống kê hiệu quả trung bình các bài đăng cũ: {time_stats}
 
-    try:
-        response = client.chat.completions.create(
-            model="openai/gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.9
-        )
-        st.markdown(response.choices[0].message.content.strip())
-    except OpenAIError as e:
-        st.error(f"⚠️ Không gọi được GPT: {e}")
+Trả lời:
+1. 🎯 Mức độ hiệu quả dự kiến (cao / trung bình / thấp)
+2. 📊 Ước lượng lượt tiếp cận, thả cảm xúc, tương tác (likes), bình luận, chia sẻ
+3. 🧠 Giải thích ngắn gọn lý do
+4. 💡 Gợi ý cải thiện nội dung (nếu có)
+"""
+        try:
+            response = client.chat.completions.create(
+                model="openai/gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.9
+            )
+            st.markdown(response.choices[0].message.content.strip())
+        except OpenAIError as e:
+            st.error(f"⚠️ Không gọi được GPT: {e}")
 
 
 
