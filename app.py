@@ -190,7 +190,7 @@ Trả lời:
 
 
 with tab3:
-    st.header("📊 Hiệu quả bài viết thựcthực")
+    st.header("📊 Hiệu quả bài viết thực")
     if st.session_state.posts:
         df = pd.DataFrame(st.session_state.posts)
         for i, row in df.iterrows():
