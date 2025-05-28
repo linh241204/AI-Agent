@@ -1,43 +1,44 @@
-# scheduler.py
-import csv
+# scheduler.py - Tự động đăng bài đúng giờ từ scheduled_posts.csv
 import time
-import requests
+import csv
 from datetime import datetime
+import requests
+import os
 
-def post_to_facebook(message, page_id, access_token):
-    url = f"https://graph.facebook.com/{page_id}/feed"
-    data = {"message": message, "access_token": access_token}
-    r = requests.post(url, data=data)
-    return r.status_code == 200, r.text
+SCHEDULE_FILE = "scheduled_posts.csv"
+CHECK_INTERVAL = 60  # giây
 
-print("🚀 Đang chạy Scheduler...\n")
+print("✅ Scheduler khởi chạy...")
 
 while True:
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    remaining_rows = []
+    new_rows = []
+    posted = False
 
-    try:
-        with open("scheduled_posts.csv", "r", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            for row in reader:
-                if len(row) < 6:
-                    continue
-                caption, platform, scheduled_time, token, page_id, mode = row
-                if scheduled_time == now and mode == "📅 Tự động đăng đúng giờ":
-                    print(f"⏰ {now} - Đang đăng bài...")
-                    success, resp = post_to_facebook(caption, page_id, token)
-                    if success:
-                        print("✅ Đã đăng bài thành công")
-                    else:
-                        print(f"❌ Lỗi khi đăng bài: {resp}")
-                else:
-                    remaining_rows.append(row)
+    with open(SCHEDULE_FILE, "r", encoding="utf-8") as f:
+        rows = list(csv.reader(f))
 
-        with open("scheduled_posts.csv", "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerows(remaining_rows)
+    for row in rows:
+        if len(row) < 6:
+            continue  # Bỏ qua dòng lỗi
 
-    except FileNotFoundError:
-        print("📂 Chưa có file scheduled_posts.csv. Đợi bài mới...")
+        caption, platform, post_time, token, page_id, mode = row
+        if mode == "Tự động đúng giờ" and post_time == now:
+            print(f"🚀 Đang đăng: {caption[:30]}...")
+            res = requests.post(
+                f"https://graph.facebook.com/{page_id}/feed",
+                data={"message": caption, "access_token": token})
+            if res.status_code == 200:
+                print("✅ Đăng thành công")
+                posted = True
+            else:
+                print(f"❌ Lỗi khi đăng: {res.text}")
+                new_rows.append(row)  # Giữ lại để thử lại sau
+        else:
+            new_rows.append(row)  # Không đến giờ hoặc không ở chế độ auto
 
-    time.sleep(60)
+    if posted:
+        with open(SCHEDULE_FILE, "w", encoding="utf-8", newline="") as f:
+            csv.writer(f).writerows(new_rows)
+
+    time.sleep(CHECK_INTERVAL)
