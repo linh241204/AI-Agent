@@ -185,7 +185,7 @@ try:
                 temperature=0.9
             )
             st.markdown(response.choices[0].message.content.strip())
-        except OpenAIError as e:
+except OpenAIError as e:
             st.error(f"⚠️ Không gọi được GPT: {e}")
 
 
