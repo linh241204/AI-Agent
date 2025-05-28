@@ -12,6 +12,12 @@ from openai import OpenAI, OpenAIError
 # Tải biến môi trường
 load_dotenv()
 
+# Gán access token & page ID cho từng nền tảng
+FB_PAGE_TOKEN = "EAASMk7sVKQ8BO8q9kUhe73q0pFsRhyedqzksZBgFkQfdDtWHCG3kDDHVaXOfLeZBKaYP6ss102fJ3WModXczUyWg8ZCbajYpfkW1P8pLoACn45rc9ZCzZAoR7SWqXyXlaiZCLm5NIZCXOB0JO4Bb6vNNWdaKquabc4STA1uV3MN7sVz57X7FYMVvGfyok67x9pAZBpOLtLMy1NtkZCwFmbFzNeo4pbdLO"
+IG_PAGE_TOKEN = "EAASMk7sVKQ8BOwDkLv44vEWgt9rYe9Ao0PfOYp2KsChz5U2usOpKatb6caWPObxvbOsqYhNwZCVi14DflW0HQKxdN06XZAiwRmW0jrIDo9O0Dui9H0VyXqtQN1xM7tQ066QMbkHSvXP9f4PnoHXFGBjBuPQo23vsitm7doUDZCmSfs8klUseVzVqNskH4qiQ6jjEgsGcJAAr2GAFpWhlpc2qwZDZD"
+THREADS_PAGE_TOKEN = IG_PAGE_TOKEN  # Giả định Threads chung với IG
+FB_PAGE_ID = "1280466033649935"
+
 # Tạo OpenAI client từ OpenRouter
 client = OpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
@@ -44,24 +50,6 @@ Viết 1 bài duy nhất.
         return response.choices[0].message.content.strip()
     except OpenAIError as e:
         return f"⚠️ Không gọi được GPT: {e}"
-
-# Hàm đăng bài viết lên Facebook
-def post_to_facebook(caption, image_path):
-    url = f"https://graph.facebook.com/{os.getenv('FB_PAGE_ID')}/photos"
-    with open(image_path, "rb") as img:
-        files = {"source": img}
-        data = {
-            "caption": caption,
-            "access_token": os.getenv("FB_TOKEN")
-        }
-        return requests.post(url, data=data, files=files).json()
-
-# Placeholder cho Instagram và Threads
-def post_to_instagram(caption, image_path):
-    return {"status": "❌ Instagram API chưa được tích hợp"}
-
-def post_to_threads(caption, image_path):
-    return {"status": "❌ Threads chưa có API công khai"}
 
 # Tabs
 st.title("🧠 Trợ lý nội dung đa nền tảng")
