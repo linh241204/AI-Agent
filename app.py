@@ -61,6 +61,26 @@ def post_to_facebook(caption, image_path):
         response = requests.post(url, data=data, files=files)
         return response.json()
 
+# Giao diện chọn chế độ đăng
+mode = st.radio("Chế độ đăng", [
+    "📅 Tự động đúng giờ",
+    "🤖 Tự động đăng đa dạng mỗi ngày",
+    "👀 Chờ duyệt thủ công"
+])
+
+# Giao diện theo chế độ
+if mode == "📅 Tự động đúng giờ":
+    post_date = st.date_input("📅 Ngày đăng", datetime.today(), key="post_date_once")
+    post_time = st.time_input("⏰ Giờ đăng", datetime.now().time(), key="post_time_once")
+
+elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
+    start_date = st.date_input("📅 Ngày bắt đầu", datetime.today(), key="start_date_loop")
+    end_date = st.date_input("📅 Ngày kết thúc", datetime.today() + timedelta(days=3), key="end_date_loop")
+    post_time = st.time_input("⏰ Giờ đăng mỗi ngày", datetime.now().time(), key="post_time_loop")
+
+else:  # 👀 Chờ duyệt thủ công
+    post_date, post_time = None, None
+
 # Ví dụ: post_to_facebook("Test caption", "images/my_image.jpg")
 
 
