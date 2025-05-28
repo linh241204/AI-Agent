@@ -59,18 +59,24 @@ with tab1:
     product_name = st.text_input("Tên sản phẩm")
     keywords = st.text_input("Từ khóa", "gốm, thủ công, mộc mạc, decor")
     platform = st.selectbox("Nền tảng", ["Facebook", "Instagram", "Threads"])
-    date = st.date_input("📅 Ngày đăng", datetime.today())
-    time = st.time_input("⏰ Giờ đăng", datetime.now().time())
-    post_time = datetime.combine(date, time)
 
-    mode = st.radio("Chế độ đăng", ["📅 Tự động đúng giờ", "👀 Chờ duyệt thủ công"])
-    repeat_flag = "daily" if st.checkbox("🔁 Đăng lặp lại hằng ngày") else "once"
+    mode = st.radio("Chế độ đăng", ["📅 Tự động đúng giờ", "🔁 Đăng lặp lại hằng ngày", "👀 Chờ duyệt thủ công"])
+
+    # Ngày giờ cho từng chế độ
+    if mode == "📅 Tự động đúng giờ":
+        date = st.date_input("📅 Ngày đăng", datetime.today())
+        time = st.time_input("⏰ Giờ đăng", datetime.now().time())
+        post_time = datetime.combine(date, time)
+
+    elif mode == "🔁 Đăng lặp lại hằng ngày":
+        start_date = st.date_input("📅 Ngày bắt đầu", datetime.today())
+        end_date = st.date_input("📅 Ngày kết thúc", datetime.today() + timedelta(days=7))
+        repeat_time = st.time_input("⏰ Giờ đăng mỗi ngày", datetime.now().time())
 
     if st.button("✨ Xử lý bài đăng"):
         if not product_name or not keywords:
             st.warning("⚠️ Vui lòng nhập đủ thông tin.")
         elif mode == "📅 Tự động đúng giờ":
-            # Ghi vào file CSV để scheduler xử lý
             with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow([
@@ -80,11 +86,28 @@ with tab1:
                     post_time.strftime("%H:%M"),
                     os.getenv("FB_PAGE_TOKEN"),
                     os.getenv("FB_PAGE_ID"),
-                    repeat_flag
+                    "once"
                 ])
-            st.success("📅 Đã lưu để tự động đăng mỗi ngày!")
+            st.success(f"📅 Đã lên lịch đăng vào {post_time.strftime('%d/%m/%Y %H:%M')}")
+
+        elif mode == "🔁 Đăng lặp lại hằng ngày":
+            current_day = start_date
+            while current_day <= end_date:
+                with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
+                    writer = csv.writer(f)
+                    writer.writerow([
+                        product_name,
+                        keywords,
+                        platform,
+                        repeat_time.strftime("%H:%M"),
+                        os.getenv("FB_PAGE_TOKEN"),
+                        os.getenv("FB_PAGE_ID"),
+                        "daily"
+                    ])
+                current_day += timedelta(days=1)
+            st.success(f"🔁 Đã lên lịch đăng lặp lại mỗi ngày từ {start_date} đến {end_date} lúc {repeat_time.strftime('%H:%M')}")
+
         else:
-            # Sinh nội dung ngay và lưu trong session
             caption = generate_caption(product_name, keywords, platform)
             st.text_area("📋 Nội dung đề xuất", caption, height=150)
             st.session_state.posts.append({
@@ -92,7 +115,7 @@ with tab1:
                 "product": product_name,
                 "platform": platform,
                 "caption": caption,
-                "time": post_time.strftime("%Y-%m-%d %H:%M"),
+                "time": "chờ duyệt",
                 "likes": 0, "comments": 0, "shares": 0, "reach": 0
             })
             st.success("✅ Đã lưu bài viết để bạn duyệt & đăng sau!")
@@ -102,6 +125,7 @@ with tab1:
         st.dataframe(pd.DataFrame(st.session_state.posts))
     else:
         st.info("Chưa có bài viết nào.")
+
 
 
 with tab2:
