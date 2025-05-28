@@ -156,11 +156,11 @@ with tab2:
     time_forecast = st.time_input("⏰ Giờ dự kiến đăng", datetime.now().time(), key="forecast_time")
     post_time_forecast = datetime.combine(date_forecast, time_forecast)
 
-    if st.button("🔍 Phân tích & Dự báo"):
-        df = pd.DataFrame(st.session_state.posts)
-        time_stats = df.groupby(df['time'])[['likes', 'comments', 'shares', 'reach', 'reactions']].mean().to_dict() if not df.empty else {}
+if st.button("🔍 Phân tích & Dự báo"):
+    df = pd.DataFrame(st.session_state.posts)
+    time_stats = df.groupby(df['time'])[['likes', 'comments', 'shares', 'reach', 'reactions']].mean().to_dict() if not df.empty else {}
 
-prompt = f"""
+    prompt = f"""
 Bạn là chuyên gia digital marketing.
 Dựa trên dữ liệu lịch sử các bài đăng và nội dung sau, hãy dự đoán hiệu quả bài viết.
 
@@ -176,16 +176,18 @@ Trả lời:
 2. 📊 Ước lượng lượt tiếp cận, thả cảm xúc, tương tác (likes), bình luận, chia sẻ
 3. 🧠 Giải thích ngắn gọn lý do
 4. 💡 Gợi ý cải thiện nội dung (nếu có)
-"""
-try:
-            response = client.chat.completions.create(
-                model="openai/gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.9
-            )
-            st.markdown(response.choices[0].message.content.strip())
-except OpenAIError as e:
-            st.error(f"⚠️ Không gọi được GPT: {e}")
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="openai/gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.9
+        )
+        st.markdown(response.choices[0].message.content.strip())
+    except OpenAIError as e:
+        st.error(f"⚠️ Không gọi được GPT: {e}")
+
 
 
 with tab3:
