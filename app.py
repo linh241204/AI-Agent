@@ -179,4 +179,4 @@ Hãy trả lời các phần sau:
             )
             st.markdown(response.choices[0].message.content.strip())
         except OpenAIError as e:
-            st.error(f"⚠️ Không gọi được GPT: {e}") đây là dữ liệu app.py của tôi, hãy sửa lại cho phù hợp nhé
+            st.error(f"⚠️ Không gọi được GPT: {e}") 
