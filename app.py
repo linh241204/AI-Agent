@@ -62,25 +62,47 @@ with tab1:
     date = st.date_input("📅 Ngày đăng", datetime.today())
     time = st.time_input("⏰ Giờ đăng", datetime.now().time())
     post_time = datetime.combine(date, time)
-    repeat_daily = st.checkbox("🔁 Đăng lặp lại hằng ngày")
-    mode = st.radio("Chế độ đăng:", ["📅 Tự động đúng giờ", "👀 Chờ duyệt & đăng thủ công"])
 
-    if st.button("✨ Sinh nội dung"):
-        if product_name and keywords:
+    mode = st.radio("Chế độ đăng", ["📅 Tự động đúng giờ", "👀 Chờ duyệt thủ công"])
+    repeat_flag = "daily" if st.checkbox("🔁 Đăng lặp lại hằng ngày") else "once"
+
+    if st.button("✨ Xử lý bài đăng"):
+        if not product_name or not keywords:
+            st.warning("⚠️ Vui lòng nhập đủ thông tin.")
+        elif mode == "📅 Tự động đúng giờ":
+            # Ghi vào file CSV để scheduler xử lý
+            with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow([
+                    product_name,
+                    keywords,
+                    platform,
+                    post_time.strftime("%H:%M"),
+                    os.getenv("FB_PAGE_TOKEN"),
+                    os.getenv("FB_PAGE_ID"),
+                    repeat_flag
+                ])
+            st.success("📅 Đã lưu để tự động đăng mỗi ngày!")
+        else:
+            # Sinh nội dung ngay và lưu trong session
             caption = generate_caption(product_name, keywords, platform)
             st.text_area("📋 Nội dung đề xuất", caption, height=150)
-            repeat_flag = "daily" if repeat_daily else "once"
-            new_row = [caption, platform, post_time.strftime("%Y-%m-%d %H:%M"), os.getenv("FB_PAGE_TOKEN"), os.getenv("FB_PAGE_ID"), mode.split(" ")[1], repeat_flag]
-            if mode == "📅 Tự động đúng giờ":
-                with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
-                    csv.writer(f).writerow(new_row)
-                st.success("📅 Đã lưu để tự động đăng đúng giờ" + (" và lặp lại hằng ngày" if repeat_daily else ""))
-            else:
-                with open("pending_posts.csv", "a", encoding="utf-8", newline="") as f:
-                    csv.writer(f).writerow(new_row)
-                st.success("👀 Đã lưu bài chờ duyệt")
-        else:
-            st.warning("⚠️ Vui lòng nhập đủ thông tin.")
+            st.session_state.posts.append({
+                "id": str(uuid.uuid4())[:8],
+                "product": product_name,
+                "platform": platform,
+                "caption": caption,
+                "time": post_time.strftime("%Y-%m-%d %H:%M"),
+                "likes": 0, "comments": 0, "shares": 0, "reach": 0
+            })
+            st.success("✅ Đã lưu bài viết để bạn duyệt & đăng sau!")
+
+    if st.session_state.posts:
+        st.markdown("### 📑 Danh sách bài đăng chờ duyệt")
+        st.dataframe(pd.DataFrame(st.session_state.posts))
+    else:
+        st.info("Chưa có bài viết nào.")
+
 
 # (Các tab khác giữ nguyên)
 # ...
