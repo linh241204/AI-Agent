@@ -141,8 +141,7 @@ Hãy dự đoán hiệu quả của bài viết dưới đây trên nền tảng
 
 Nội dung:
 """
-{caption_forecast}
-"""
+        prompt += caption_forecast + """
 
 Hãy trả lời các phần sau:
 1. 🎯 Dự đoán hiệu quả (cao / trung bình / thấp)
@@ -169,20 +168,12 @@ with tab5:
                 st.markdown(f"**Nền tảng:** {row['platform']}")
                 st.markdown(f"**Thời gian đăng:** {row['time']}")
                 if st.button(f"📤 Đăng ngay #{i}"):
-                    try:
-                        res = requests.post(
-                            f"https://graph.facebook.com/{row['page_id']}/feed",
-                            data={"message": row['caption'], "access_token": row['token']}
-                        )
-                        if res.status_code == 200:
-                            st.success("✅ Đã đăng ngay")
-                            df = df.drop(i)
-                            df.to_csv("pending_posts.csv", index=False)
-                            st.experimental_rerun()
-                        else:
-                            st.error("❌ Lỗi khi đăng bài.")
-                    except Exception as e:
-                        st.error(f"❌ Lỗi: {e}")
+                    res = requests.post(f"https://graph.facebook.com/{row['page_id']}/feed", data={"message": row['caption'], "access_token": row['token']})
+                    if res.status_code == 200:
+                        st.success("✅ Đã đăng ngay")
+                        df = df.drop(i)
+                        df.to_csv("pending_posts.csv", index=False)
+                        st.experimental_rerun()
                 elif st.button(f"📅 Lên lịch tự động #{i}"):
                     with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
                         csv.writer(f).writerow(row)
