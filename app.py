@@ -149,7 +149,7 @@ with tab1:
             st.success("✅ Đã lưu bài viết để duyệt thủ công.")
 
 
-with tab2:
+with tab3:
     st.header("📊 Hiệu quả bài viết")
     if st.session_state.posts:
         df = pd.DataFrame(st.session_state.posts)
@@ -179,7 +179,7 @@ with tab2:
 
 
 
-with tab3:
+with tab4:
     st.header("🎯 Gợi ý chiến lược")
     if st.session_state.posts:
         df = pd.DataFrame(st.session_state.posts)
@@ -200,7 +200,7 @@ Hãy đánh giá hiệu quả nội dung và đề xuất 3 cách cải thiện.
     else:
         st.info("Chưa có dữ liệu để phân tích.")
 
-with tab4:
+with tab2:
     st.header("🔮 Dự báo hiệu quả bài viết")
     caption_forecast = st.text_area("✍️ Nhập caption dự kiến")
     platform_forecast = st.selectbox("📱 Nền tảng đăng", ["Facebook", "Instagram", "Threads"], key="forecast_platform")
