@@ -209,16 +209,16 @@ with tab4:
     time_forecast = st.time_input("⏰ Giờ dự kiến đăng", datetime.now().time(), key="forecast_time")
     post_time_forecast = datetime.combine(date_forecast, time_forecast)
 
-    if st.button("🔍 Phân tích & Dự báo"):
-        prompt = f"""
+if st.button("🔍 Phân tích & Dự báo"):
+    prompt = f"""
 Bạn là một chuyên gia digital marketing, có kinh nghiệm phân tích nội dung mạng xã hội.
 
 Hãy dự đoán hiệu quả của bài viết dưới đây trên nền tảng {platform_forecast} nếu được đăng vào lúc {post_time_forecast.strftime("%H:%M %d/%m/%Y")}.
 
 Nội dung:
-"""
+\"\"\"
 {caption_forecast}
-"""
+\"\"\"
 
 Hãy trả lời các phần sau:
 1. 🎯 Dự đoán hiệu quả (cao / trung bình / thấp)
@@ -227,14 +227,15 @@ Hãy trả lời các phần sau:
 4. 💡 Gợi ý cách viết lại nếu cần
 """
 try:
-            response = client.chat.completions.create(
-                model="openai/gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.9
-            )
-            st.markdown(response.choices[0].message.content.strip())
+        response = client.chat.completions.create(
+            model="openai/gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.9
+        )
+        st.markdown(response.choices[0].message.content.strip())
 except OpenAIError as e:
-            st.error(f"⚠️ Không gọi được GPT: {e}")
+        st.error(f"⚠️ Không gọi được GPT: {e}")
+
 
 with tab5:
     st.header("📥 Bài chờ duyệt")
