@@ -160,16 +160,15 @@ with tab2:
         df = pd.DataFrame(st.session_state.posts)
         time_stats = df.groupby(df['time'])[['likes', 'comments', 'shares', 'reach', 'reactions']].mean().to_dict() if not df.empty else {}
 
-        prompt = f"""
+prompt = f"""
 Bạn là chuyên gia digital marketing.
 Dựa trên dữ liệu lịch sử các bài đăng và nội dung sau, hãy dự đoán hiệu quả bài viết.
 
 - Nền tảng: {platform_forecast}
 - Thời gian đăng: {post_time_forecast.strftime('%H:%M %d/%m/%Y')}
 - Nội dung:
-"""
 {caption_forecast}
-"""
+
 - Thống kê hiệu quả trung bình các bài đăng cũ: {time_stats}
 
 Trả lời:
