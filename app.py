@@ -122,8 +122,9 @@ Hãy đánh giá hiệu quả nội dung và đề xuất 3 cách cải thiện.
                 st.error(f"⚠️ Lỗi AI: {e}")
     else:
         st.info("Chưa có dữ liệu để phân tích.")
-    with tab4:
+with tab4:
     st.header("🔮 Dự báo hiệu quả bài viết")
+
     caption_forecast = st.text_area("✍️ Nhập caption dự kiến", "")
     platform_forecast = st.selectbox("📱 Nền tảng đăng", ["Facebook", "Instagram", "Threads"], key="forecast_platform")
     date_forecast = st.date_input("📅 Ngày dự kiến đăng", datetime.today(), key="forecast_date")
