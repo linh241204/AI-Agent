@@ -22,14 +22,26 @@ if "posts" not in st.session_state:
 
 # Hàm sinh caption bằng GPT
 def generate_caption(product_name, keywords, platform):
-    prompt = f"""Bạn là chuyên gia marketing cho sản phẩm gốm thủ công.
-Hãy viết caption hấp dẫn (không quá 50 từ) cho sản phẩm '{product_name}' với các từ khóa: {keywords}. Nền tảng: {platform}."""
+    prompt = f"""
+Bạn là chuyên gia nội dung sáng tạo cho thương hiệu gốm thủ công cao cấp.
 
+Hãy viết một **bài viết marketing dài khoảng 100–150 từ** phù hợp đăng trên {platform}, để giới thiệu sản phẩm **{product_name}**, sử dụng tinh tế các từ khóa: {keywords}.
+
+Yêu cầu:
+- Giọng văn mộc mạc, sâu sắc, truyền cảm hứng
+- Lồng ghép cảm xúc, triết lý sống chậm, yêu nét đẹp truyền thống
+- Không quá bán hàng. Tập trung gợi cảm giác, không gian, cảm xúc người dùng
+- Có thể mở đầu bằng một hình ảnh hoặc cảm nhận đời thường
+- Kết bài nhẹ nhàng, có thể đặt câu hỏi gợi mở
+- Gắn hashtag cuối bài. Không liệt kê hashtag quá dài
+
+Viết 1 bài duy nhất.
+"""
     try:
         response = client.chat.completions.create(
             model="openai/gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
+            temperature=0.95
         )
         return response.choices[0].message.content.strip()
     except OpenAIError as e:
