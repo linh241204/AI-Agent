@@ -226,15 +226,17 @@ Hãy trả lời các phần sau:
 3. 🧠 Giải thích ngắn gọn lý do
 4. 💡 Gợi ý cách viết lại nếu cần
 """
-try:
+
+    try:
         response = client.chat.completions.create(
             model="openai/gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.9
         )
         st.markdown(response.choices[0].message.content.strip())
-except OpenAIError as e:
+    except OpenAIError as e:
         st.error(f"⚠️ Không gọi được GPT: {e}")
+
 
 
 with tab5:
