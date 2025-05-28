@@ -22,7 +22,7 @@ Hãy viết caption hấp dẫn (không quá 50 từ) cho sản phẩm '{product
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
