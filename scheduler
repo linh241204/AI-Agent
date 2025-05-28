@@ -1,82 +1,43 @@
-# app.py
-import streamlit as st
-import requests
+# scheduler.py
 import csv
+import time
+import requests
 from datetime import datetime
-from openai import OpenAI
 
-st.set_page_config(page_title="AI Content Scheduler", layout="centered")
-st.title("🤖 AI Agent tạo & quản lý bài đăng")
+def post_to_facebook(message, page_id, access_token):
+    url = f"https://graph.facebook.com/{page_id}/feed"
+    data = {"message": message, "access_token": access_token}
+    r = requests.post(url, data=data)
+    return r.status_code == 200, r.text
 
-# --- Nhập nội dung đầu vào ---
-product_name = st.text_input("📦 Tên sản phẩm")
-keywords = st.text_input("🔍 Từ khóa mô tả")
-platform = st.selectbox("🌐 Nền tảng", ["Facebook"])
+print("🚀 Đang chạy Scheduler...\n")
 
-# --- Sinh nội dung bằng AI ---
-if st.button("✨ Tạo caption bằng AI"):
-    prompt = f"""
-    Bạn là chuyên gia nội dung sáng tạo cho thương hiệu gốm thủ công cao cấp.
-
-    Hãy viết một bài viết marketing dài khoảng 100–150 từ phù hợp đăng trên {platform}, để giới thiệu sản phẩm {product_name}, sử dụng các từ khóa: {keywords}.
-
-    Yêu cầu:
-    - Giọng văn mộc mạc, truyền cảm hứng
-    - Lồng ghép cảm xúc, triết lý sống chậm
-    - Không quá bán hàng. Gợi cảm giác, cảm hứng sống
-    - Gắn hashtag hợp lý cuối bài
-    """
+while True:
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    remaining_rows = []
 
     try:
-        client = OpenAI()
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.95
-        )
-        generated_caption = response.choices[0].message.content.strip()
-        st.session_state.caption = generated_caption
-        st.success("✅ Đã tạo nội dung")
-        st.text_area("📝 Caption được tạo:", generated_caption, height=200)
-    except Exception as e:
-        st.error(f"❌ Lỗi khi gọi GPT: {e}")
+        with open("scheduled_posts.csv", "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if len(row) < 6:
+                    continue
+                caption, platform, scheduled_time, token, page_id, mode = row
+                if scheduled_time == now and mode == "📅 Tự động đăng đúng giờ":
+                    print(f"⏰ {now} - Đang đăng bài...")
+                    success, resp = post_to_facebook(caption, page_id, token)
+                    if success:
+                        print("✅ Đã đăng bài thành công")
+                    else:
+                        print(f"❌ Lỗi khi đăng bài: {resp}")
+                else:
+                    remaining_rows.append(row)
 
-# --- Nếu đã có caption ---
-if "caption" in st.session_state:
-    st.subheader("📤 Đăng bài")
+        with open("scheduled_posts.csv", "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerows(remaining_rows)
 
-    access_token = st.text_input("🔐 Access Token", type="password")
-    page_id = st.text_input("🔑 Facebook Page ID")
+    except FileNotFoundError:
+        print("📂 Chưa có file scheduled_posts.csv. Đợi bài mới...")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🚀 Đăng ngay lên Facebook"):
-            response = requests.post(
-                f"https://graph.facebook.com/{page_id}/feed",
-                data={"message": st.session_state.caption, "access_token": access_token}
-            )
-            if response.status_code == 200:
-                st.success("✅ Đã đăng bài thành công!")
-            else:
-                st.error(f"❌ Lỗi khi đăng: {response.text}")
-
-    with col2:
-        st.markdown("### 📅 Lên lịch đăng")
-        selected_date = st.date_input("Ngày đăng", value=datetime.today())
-        selected_time = st.time_input("Giờ đăng", value=datetime.now().time())
-        post_mode = st.radio("📌 Chọn chế độ đăng", ["📅 Tự động đăng đúng giờ", "👀 Chờ duyệt & đăng thủ công"], horizontal=True)
-
-        if st.button("✅ Xác nhận & Lưu bài"):
-            scheduled_datetime = datetime.combine(selected_date, selected_time).strftime("%Y-%m-%d %H:%M")
-            row = [st.session_state.caption, platform, scheduled_datetime, access_token, page_id, post_mode]
-
-            if post_mode == "📅 Tự động đăng đúng giờ":
-                with open("scheduled_posts.csv", "a", newline="", encoding="utf-8") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(row)
-                st.success(f"✅ Đã lên lịch đăng lúc {scheduled_datetime}")
-            else:
-                with open("pending_posts.csv", "a", newline="", encoding="utf-8") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(row)
-                st.success("📥 Bài đã lưu vào danh sách chờ duyệt")
+    time.sleep(60)
