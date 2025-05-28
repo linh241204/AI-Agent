@@ -37,7 +37,10 @@ Yêu cầu:
 - Dùng biểu tượng cảm xúc phù hợp (🌿✨🧘🏽‍♀️🏺❤️…)
 - Giọng văn mộc mạc, truyền cảm hứng – không quá quảng cáo
 - Kết bài nhẹ nhàng, có thể đặt câu hỏi
-- Cuối bài **luôn có dòng hashtag**: #xuongbinhgom
+
+Cuối bài, xuống dòng riêng và gắn khoảng 3–5 hashtag, trong đó:
+- **Bắt buộc có `#xuongbinhgom`**
+- Các hashtag còn lại nên liên quan sản phẩm, cảm hứng sống chậm, thủ công, trang trí nội thất,...
 
 Viết 1 bài duy nhất.
 """
@@ -48,11 +51,17 @@ Viết 1 bài duy nhất.
             temperature=0.95
         )
         caption = response.choices[0].message.content.strip()
+
+        # Đảm bảo có #xuongbinhgom ở phần hashtag
         if "#xuongbinhgom" not in caption.lower():
-            caption += "\n\n#xuongbinhgom"
+            if not caption.endswith("#"):
+                caption += "\n\n"
+            caption += "#xuongbinhgom"
+
         return caption
     except OpenAIError as e:
         return f"⚠️ Không gọi được GPT: {e}"
+
 
 
 
