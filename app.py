@@ -148,9 +148,49 @@ with tab1:
             })
             st.success("✅ Đã lưu bài viết để duyệt thủ công.")
 
+with tab2:
+    st.header("🔮 Dự báo hiệu quả bài viết")
+    caption_forecast = st.text_area("✍️ Nhập caption dự kiến")
+    platform_forecast = st.selectbox("📱 Nền tảng đăng", ["Facebook", "Instagram", "Threads"], key="forecast_platform")
+    date_forecast = st.date_input("📅 Ngày dự kiến đăng", datetime.today(), key="forecast_date")
+    time_forecast = st.time_input("⏰ Giờ dự kiến đăng", datetime.now().time(), key="forecast_time")
+    post_time_forecast = datetime.combine(date_forecast, time_forecast)
+
+    if st.button("🔍 Phân tích & Dự báo"):
+        df = pd.DataFrame(st.session_state.posts)
+        time_stats = df.groupby(df['time'])[['likes', 'comments', 'shares', 'reach', 'reactions']].mean().to_dict() if not df.empty else {}
+
+        prompt = f"""
+Bạn là chuyên gia digital marketing.
+Dựa trên dữ liệu lịch sử các bài đăng và nội dung sau, hãy dự đoán hiệu quả bài viết.
+
+- Nền tảng: {platform_forecast}
+- Thời gian đăng: {post_time_forecast.strftime('%H:%M %d/%m/%Y')}
+- Nội dung:
+"""
+{caption_forecast}
+"""
+- Thống kê hiệu quả trung bình các bài đăng cũ: {time_stats}
+
+Trả lời:
+1. 🎯 Mức độ hiệu quả dự kiến (cao / trung bình / thấp)
+2. 📊 Ước lượng lượt tiếp cận, thả cảm xúc, tương tác (likes), bình luận, chia sẻ
+3. 🧠 Giải thích ngắn gọn lý do
+4. 💡 Gợi ý cải thiện nội dung (nếu có)
+"""
+        try:
+            response = client.chat.completions.create(
+                model="openai/gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.9
+            )
+            st.markdown(response.choices[0].message.content.strip())
+        except OpenAIError as e:
+            st.error(f"⚠️ Không gọi được GPT: {e}")
+
 
 with tab3:
-    st.header("📊 Hiệu quả bài viết")
+    st.header("📊 Hiệu quả bài viết thựcthực")
     if st.session_state.posts:
         df = pd.DataFrame(st.session_state.posts)
         for i, row in df.iterrows():
@@ -200,45 +240,6 @@ Hãy đánh giá hiệu quả nội dung và đề xuất 3 cách cải thiện.
     else:
         st.info("Chưa có dữ liệu để phân tích.")
 
-with tab2:
-    st.header("🔮 Dự báo hiệu quả bài viết")
-    caption_forecast = st.text_area("✍️ Nhập caption dự kiến")
-    platform_forecast = st.selectbox("📱 Nền tảng đăng", ["Facebook", "Instagram", "Threads"], key="forecast_platform")
-    date_forecast = st.date_input("📅 Ngày dự kiến đăng", datetime.today(), key="forecast_date")
-    time_forecast = st.time_input("⏰ Giờ dự kiến đăng", datetime.now().time(), key="forecast_time")
-    post_time_forecast = datetime.combine(date_forecast, time_forecast)
-
-    if st.button("🔍 Phân tích & Dự báo"):
-        df = pd.DataFrame(st.session_state.posts)
-        time_stats = df.groupby(df['time'])[['likes', 'comments', 'shares', 'reach', 'reactions']].mean().to_dict() if not df.empty else {}
-
-        prompt = f"""
-Bạn là chuyên gia digital marketing.
-Dựa trên dữ liệu lịch sử các bài đăng và nội dung sau, hãy dự đoán hiệu quả bài viết.
-
-- Nền tảng: {platform_forecast}
-- Thời gian đăng: {post_time_forecast.strftime('%H:%M %d/%m/%Y')}
-- Nội dung:
-"""
-{caption_forecast}
-"""
-- Thống kê hiệu quả trung bình các bài đăng cũ: {time_stats}
-
-Trả lời:
-1. 🎯 Mức độ hiệu quả dự kiến (cao / trung bình / thấp)
-2. 📊 Ước lượng lượt tiếp cận, thả cảm xúc, tương tác (likes), bình luận, chia sẻ
-3. 🧠 Giải thích ngắn gọn lý do
-4. 💡 Gợi ý cải thiện nội dung (nếu có)
-"""
-        try:
-            response = client.chat.completions.create(
-                model="openai/gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.9
-            )
-            st.markdown(response.choices[0].message.content.strip())
-        except OpenAIError as e:
-            st.error(f"⚠️ Không gọi được GPT: {e}")
 
 
 
