@@ -52,7 +52,8 @@ Viết 1 bài duy nhất.
 
 st.set_page_config(page_title="AI Agent Gốm", layout="centered")
 st.title("📣 AI Agent - Marketing Gốm thủ công")
-tab1, tab2, tab3, tab4 = st.tabs(["📝 Tạo nội dung", "📊 Hiệu quả", "🎯 Gợi ý chiến lược", "🔮 Dự báo"])
+# Tabs chính
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📝 Tạo nội dung", "📊 Hiệu quả", "🎯 Gợi ý chiến lược", "🔮 Dự báo", "📥 Bài chờ duyệt"])
 
 with tab1:
     st.header("📝 Tạo nội dung bài đăng")
@@ -184,3 +185,27 @@ Trả lời các mục:
             st.markdown(response.choices[0].message.content.strip())
         except OpenAIError as e:
             st.error(f"⚠️ Không gọi được GPT: {e}")
+with tab5:
+    st.header("📥 Bài chờ duyệt")
+    if os.path.exists("pending_posts.csv"):
+        df = pd.read_csv("pending_posts.csv")
+        for i, row in df.iterrows():
+            with st.expander(f"📝 {row['caption'][:30]}..."):
+                st.markdown(f"**Nền tảng:** {row['platform']}")
+                st.markdown(f"**Thời gian đăng:** {row['time']}")
+                if st.button(f"📤 Đăng ngay #{i}"):
+                    res = requests.post(f"https://graph.facebook.com/{row['page_id']}/feed", data={"message": row['caption'], "access_token": row['token']})
+                    if res.status_code == 200:
+                        st.success("✅ Đã đăng ngay")
+                        df = df.drop(i)
+                        df.to_csv("pending_posts.csv", index=False)
+                        st.experimental_rerun()
+                elif st.button(f"📅 Lên lịch tự động #{i}"):
+                    with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
+                        csv.writer(f).writerow(row)
+                    df = df.drop(i)
+                    df.to_csv("pending_posts.csv", index=False)
+                    st.success("📅 Đã chuyển sang tự động đăng")
+                    st.experimental_rerun()
+    else:
+        st.info("Không có bài chờ duyệt.")
