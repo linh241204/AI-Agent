@@ -1,44 +1,86 @@
-# scheduler.py - Tự động đăng bài đúng giờ từ scheduled_posts.csv
-import time
 import csv
-from datetime import datetime
-import requests
+from datetime import datetime, timedelta
 import os
+import requests
+from dotenv import load_dotenv
+from openai import OpenAI, OpenAIError
 
-SCHEDULE_FILE = "scheduled_posts.csv"
-CHECK_INTERVAL = 60  # giây
+load_dotenv()
 
-print("✅ Scheduler khởi chạy...")
+client = OpenAI(
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1"
+)
 
-while True:
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+SCHEDULED_FILE = "scheduled_posts.csv"
+
+def generate_caption(product, keywords, platform):
+    prompt = f"""
+Bạn là chuyên gia nội dung sáng tạo cho thương hiệu gốm thủ công cao cấp.
+
+Hãy viết một **bài viết marketing dài khoảng 100–150 từ** phù hợp đăng trên {platform}, để giới thiệu sản phẩm **{product}**, sử dụng tinh tế các từ khóa: {keywords}.
+
+Yêu cầu:
+- Giọng văn mộc mạc, sâu sắc, truyền cảm hứng
+- Lồng ghép cảm xúc, triết lý sống chậm, yêu nét đẹp truyền thống
+- Không quá bán hàng. Tập trung gợi cảm giác, không gian, cảm xúc người dùng
+- Có thể mở đầu bằng một hình ảnh hoặc cảm nhận đời thường
+- Kết bài nhẹ nhàng, có thể đặt câu hỏi gợi mở
+- Gắn hashtag cuối bài. Không liệt kê hashtag quá dài
+
+Viết 1 bài duy nhất.
+"""
+    try:
+        response = client.chat.completions.create(
+            model="openai/gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.95
+        )
+        return response.choices[0].message.content.strip()
+    except OpenAIError as e:
+        return f"⚠️ Lỗi GPT: {e}"
+
+def post_to_facebook(caption, token, page_id):
+    url = f"https://graph.facebook.com/{page_id}/feed"
+    params = {
+        "message": caption,
+        "access_token": token
+    }
+    response = requests.post(url, params=params)
+    return response.status_code == 200
+
+def run_scheduler():
+    if not os.path.exists(SCHEDULED_FILE):
+        print("⚠️ Chưa có file scheduled_posts.csv")
+        return
+
     new_rows = []
-    posted = False
+    now = datetime.now()
 
-    with open(SCHEDULE_FILE, "r", encoding="utf-8") as f:
-        rows = list(csv.reader(f))
+    with open(SCHEDULED_FILE, "r", encoding="utf-8") as file:
+        reader = csv.reader(file)
+        for row in reader:
+            if len(row) < 7:
+                continue  # Bỏ qua dòng lỗi
+            product, keywords, platform, time_str, token, page_id, repeat = row
+            post_time = datetime.strptime(time_str, "%H:%M")
+            today_post_time = now.replace(hour=post_time.hour, minute=post_time.minute, second=0, microsecond=0)
 
-    for row in rows:
-        if len(row) < 6:
-            continue  # Bỏ qua dòng lỗi
+            if now >= today_post_time and now < today_post_time + timedelta(minutes=3):
+                print(f"📝 Đang sinh nội dung cho {product}...")
+                caption = generate_caption(product, keywords, platform)
+                print(f"⏰ Đăng bài lúc {today_post_time.strftime('%H:%M')}...")
+                success = post_to_facebook(caption, token, page_id)
+                if success:
+                    print("✅ Đăng thành công!")
+                else:
+                    print("❌ Lỗi đăng bài.")
 
-        caption, platform, post_time, token, page_id, mode = row
-        if mode == "Tự động đúng giờ" and post_time == now:
-            print(f"🚀 Đang đăng: {caption[:30]}...")
-            res = requests.post(
-                f"https://graph.facebook.com/{page_id}/feed",
-                data={"message": caption, "access_token": token})
-            if res.status_code == 200:
-                print("✅ Đăng thành công")
-                posted = True
-            else:
-                print(f"❌ Lỗi khi đăng: {res.text}")
-                new_rows.append(row)  # Giữ lại để thử lại sau
-        else:
-            new_rows.append(row)  # Không đến giờ hoặc không ở chế độ auto
+            new_rows.append(row)  # Luôn giữ lại để lặp mỗi ngày
 
-    if posted:
-        with open(SCHEDULE_FILE, "w", encoding="utf-8", newline="") as f:
-            csv.writer(f).writerows(new_rows)
+    with open(SCHEDULED_FILE, "w", encoding="utf-8", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerows(new_rows)
 
-    time.sleep(CHECK_INTERVAL)
+if __name__ == "__main__":
+    run_scheduler()
