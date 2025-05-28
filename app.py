@@ -14,17 +14,13 @@ load_dotenv()
 
 # Gán access token & page ID trực tiếp (nếu muốn hardcode)
 FB_PAGE_TOKEN = "EAASMk7sVKQ8BO8q9kUhe73q0pFsRhyedqzksZBgFkQfdDtWHCG3kDDHVaXOfLeZBKaYP6ss102fJ3WModXczUyWg8ZCbajYpfkW1P8pLoACn45rc9ZCzZAoR7SWqXyXlaiZCLm5NIZCXOB0JO4Bb6vNNWdaKquabc4STA1uV3MN7sVz57X7FYMVvGfyok67x9pAZBpOLtLMy1NtkZCwFmbFzNeo4pbdLO"
-FB_PAGE_ID = "<YOUR_PAGE_ID_HERE>"  # <- thay bằng ID trang Facebook bạn quản lý
+FB_PAGE_ID = "112233445566778"  # <- thay bằng ID trang Facebook bạn quản lý
 
 # Tạo OpenAI client từ OpenRouter
 client = OpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
     base_url="https://openrouter.ai/api/v1"
 )
-
-# Khởi tạo dữ liệu nếu chưa có
-if "posts" not in st.session_state:
-    st.session_state.posts = []
 
 # Hàm sinh caption bằng GPT
 def generate_caption(product_name, keywords, platform):
@@ -52,6 +48,21 @@ Viết 1 bài duy nhất.
         return response.choices[0].message.content.strip()
     except OpenAIError as e:
         return f"⚠️ Không gọi được GPT: {e}"
+
+# Hàm đăng bài viết lên Facebook
+def post_to_facebook(caption, image_path):
+    url = f"https://graph.facebook.com/{FB_PAGE_ID}/photos"
+    with open(image_path, "rb") as img:
+        files = {"source": img}
+        data = {
+            "caption": caption,
+            "access_token": FB_PAGE_TOKEN
+        }
+        response = requests.post(url, data=data, files=files)
+        return response.json()
+
+# Ví dụ: post_to_facebook("Test caption", "images/my_image.jpg")
+
 
 # Bạn có thể thay các lệnh os.getenv("FB_PAGE_TOKEN") bằng FB_PAGE_TOKEN ở các nơi dùng để đăng Facebook
 # Ví dụ:
