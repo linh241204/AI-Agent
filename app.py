@@ -48,7 +48,7 @@ Viết 1 bài duy nhất.
         return f"⚠️ Không gọi được GPT: {e}"
 
 # Giao diện chính gồm 3 tab
-tab1, tab2, tab3 = st.tabs(["📝 Tạo nội dung", "📊 Hiệu quả", "🎯 Gợi ý chiến lược"])
+tab1, tab2, tab3, tab4 = st.tabs(["📝 Tạo nội dung", "📊 Hiệu quả", "🎯 Gợi ý chiến lược", "🔮 Dự báo"])
 
 with tab1:
     st.header("📝 Tạo nội dung bài đăng")
@@ -122,3 +122,37 @@ Hãy đánh giá hiệu quả nội dung và đề xuất 3 cách cải thiện.
                 st.error(f"⚠️ Lỗi AI: {e}")
     else:
         st.info("Chưa có dữ liệu để phân tích.")
+    with tab4:
+    st.header("🔮 Dự báo hiệu quả bài viết")
+    caption_forecast = st.text_area("✍️ Nhập caption dự kiến", "")
+    platform_forecast = st.selectbox("📱 Nền tảng đăng", ["Facebook", "Instagram", "Threads"], key="forecast_platform")
+    date_forecast = st.date_input("📅 Ngày dự kiến đăng", datetime.today(), key="forecast_date")
+    time_forecast = st.time_input("⏰ Giờ dự kiến đăng", datetime.now().time(), key="forecast_time")
+    post_time_forecast = datetime.combine(date_forecast, time_forecast)
+
+    if st.button("🔍 Phân tích & Dự báo"):
+        prompt = f"""
+Bạn là một chuyên gia digital marketing, có kinh nghiệm phân tích nội dung mạng xã hội.
+
+Hãy dự đoán hiệu quả của bài viết dưới đây trên nền tảng {platform_forecast} nếu được đăng vào lúc {post_time_forecast.strftime("%H:%M %d/%m/%Y")}.
+
+Nội dung:
+\"\"\"
+{caption_forecast}
+\"\"\"
+
+Hãy trả lời các phần sau:
+1. 🎯 Dự đoán hiệu quả (cao / trung bình / thấp)
+2. 📊 Ước lượng số lượt tiếp cận (reach), tương tác (likes), bình luận (comments), chia sẻ (shares)
+3. 🧠 Giải thích ngắn gọn lý do
+4. 💡 Gợi ý cách viết lại nếu cần
+"""
+        try:
+            response = client.chat.completions.create(
+                model="openai/gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.9
+            )
+            st.markdown(response.choices[0].message.content.strip())
+        except OpenAIError as e:
+            st.error(f"⚠️ Không gọi được GPT: {e}")
