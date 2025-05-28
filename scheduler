@@ -1,1 +1,79 @@
+# scheduler.py
+import pandas as pd
+from datetime import datetime
+import time
+import requests
+import os
 
+# === Các cột của scheduled_posts.csv:
+# 0 product_name
+# 1 keywords
+# 2 platform
+# 3 time (HH:MM)
+# 4 token (FB_PAGE_TOKEN)
+# 5 page_id (FB_PAGE_ID)
+# 6 mode ("once" / "daily")
+# 7 date (YYYY-MM-DD)
+# 8 caption
+# 9 image_path
+
+CSV_PATH = "scheduled_posts.csv"
+
+def post_to_facebook(page_id, token, caption, image_path=None):
+    url = f"https://graph.facebook.com/{page_id}/photos"
+    data = {
+        'access_token': token,
+        'caption': caption
+    }
+    files = {'source': open(image_path, 'rb')} if image_path and os.path.exists(image_path) else None
+
+    try:
+        response = requests.post(url, data=data, files=files)
+        return response.status_code, response.json()
+    except Exception as e:
+        return 500, {"error": str(e)}
+
+def main_loop():
+    print("⏰ Scheduler is running...")
+
+    while True:
+        now = datetime.now()
+        try:
+            df = pd.read_csv(CSV_PATH)
+        except FileNotFoundError:
+            print("⚠️ Chưa có file scheduled_posts.csv.")
+            time.sleep(60)
+            continue
+
+        updated = False
+        for i, row in df.iterrows():
+            if "status" in df.columns and row.get("status") == "done":
+                continue
+
+            try:
+                post_datetime = datetime.strptime(f"{row['date']} {row['time']}", "%Y-%m-%d %H:%M")
+            except Exception as e:
+                print(f"❌ Lỗi định dạng thời gian ở dòng {i}: {e}")
+                continue
+
+            if 0 <= (now - post_datetime).total_seconds() < 60:
+                print(f"🚀 Đang đăng bài [{row['platform']}] - {row['product_name']}")
+                status_code, res = post_to_facebook(
+                    page_id=row['page_id'],
+                    token=row['token'],
+                    caption=row['caption'],
+                    image_path=row.get('image_path', None)
+                )
+
+                print(f"📡 Kết quả: {status_code} - {res}")
+
+                df.at[i, "status"] = "done"
+                updated = True
+
+        if updated:
+            df.to_csv(CSV_PATH, index=False)
+
+        time.sleep(60)
+
+if __name__ == "__main__":
+    main_loop()
