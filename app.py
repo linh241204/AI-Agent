@@ -1,5 +1,5 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
@@ -9,27 +9,28 @@ import uuid
 
 # Load API key từ biến môi trường
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Giả lập dữ liệu bài đăng nếu chưa có
 if "posts" not in st.session_state:
     st.session_state.posts = []
 
-# Hàm sinh nội dung bằng OpenAI
+# Hàm sinh nội dung bằng OpenAI GPT-4
 def generate_caption(product_name, keywords, platform):
     prompt = f"""Bạn là chuyên gia marketing cho sản phẩm gốm thủ công.
 Hãy viết caption hấp dẫn (không quá 50 từ) cho sản phẩm '{product_name}' với các từ khóa: {keywords}. Nền tảng: {platform}."""
+
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
-        return response['choices'][0]['message']['content'].strip()
+        return response.choices[0].message.content.strip()
     except Exception as e:
         return f"Lỗi AI: {e}"
 
-# Tabs
+# Giao diện Streamlit: Tabs chính
 tab1, tab2, tab3 = st.tabs(["📝 Tạo nội dung", "📊 Hiệu quả marketing", "🎯 Gợi ý chiến lược"])
 
 # TAB 1: TẠO NỘI DUNG
@@ -112,12 +113,12 @@ Hãy đánh giá tổng quan hiệu quả chiến lược nội dung hiện tạ
 
         if st.button("🧠 Phân tích và Gợi ý từ AI"):
             try:
-                response = openai.ChatCompletion.create(
+                response = client.chat.completions.create(
                     model="gpt-4",
                     messages=[{"role": "user", "content": analysis_prompt}],
                     temperature=0.7
                 )
-                suggestions = response['choices'][0]['message']['content']
+                suggestions = response.choices[0].message.content.strip()
                 st.success("🎯 Dưới đây là phân tích và gợi ý từ AI:")
                 st.markdown(suggestions)
             except Exception as e:
