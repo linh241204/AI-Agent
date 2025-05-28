@@ -226,7 +226,7 @@ Hãy trả lời các phần sau:
 3. 🧠 Giải thích ngắn gọn lý do
 4. 💡 Gợi ý cách viết lại nếu cần
 """
-        try:
+try:
             response = client.chat.completions.create(
                 model="openai/gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
