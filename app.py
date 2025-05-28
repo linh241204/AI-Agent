@@ -215,18 +215,20 @@ with tab3:
 
 
 
-
-
-
-
 with tab4:
-    st.header("🎯 Gợi ý chiến lược")
+    st.header("🎯 Gợi ý chiến lược cải thiện")
     if st.session_state.posts:
         df = pd.DataFrame(st.session_state.posts)
-        prompt = f"""Dưới đây là dữ liệu hiệu quả bài viết:
-{df[['platform','caption','likes','comments','shares','reach']].to_string(index=False)}
+        # Giả sử dự báo lưu trong df_forecast nếu bạn muốn triển khai tiếp sau này
+        prompt = f"""Dưới đây là dữ liệu hiệu quả các bài viết:
 
-Hãy đánh giá hiệu quả nội dung và đề xuất 3 cách cải thiện."""
+{df[['platform','caption','likes','comments','shares','reach','reactions']].to_string(index=False)}
+
+Hãy:
+- So sánh hiệu quả thực tế với kỳ vọng thông thường
+- Gợi ý 3 chiến lược cải thiện nội dung, thời gian hoặc nền tảng phù hợp hơn
+- Ưu tiên đề xuất hành động cụ thể
+"""
         if st.button("🧠 Gợi ý từ AI"):
             try:
                 response = client.chat.completions.create(
@@ -238,7 +240,8 @@ Hãy đánh giá hiệu quả nội dung và đề xuất 3 cách cải thiện.
             except OpenAIError as e:
                 st.error(f"⚠️ Lỗi AI: {e}")
     else:
-        st.info("Chưa có dữ liệu để phân tích.")
+        st.info("Chưa có dữ liệu để phân tích chiến lược.")
+
 
 
 
