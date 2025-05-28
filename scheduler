@@ -1,86 +1,73 @@
-import csv
-from datetime import datetime, timedelta
-import os
-import requests
-from dotenv import load_dotenv
-from openai import OpenAI, OpenAIError
+with tab1:
+    st.header("📝 Tạo nội dung bài đăng")
+    product_name = st.text_input("Tên sản phẩm")
+    keywords = st.text_input("Từ khóa", "gốm, thủ công, mộc mạc, decor")
+    platform = st.selectbox("Nền tảng", ["Facebook", "Instagram", "Threads"])
 
-load_dotenv()
+    mode = st.radio("Chế độ đăng", ["📅 Tự động đúng giờ", "🤖 Tự động đăng đa dạng mỗi ngày", "👀 Chờ duyệt thủ công"])
 
-client = OpenAI(
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
-)
+    if mode == "📅 Tự động đúng giờ":
+        date = st.date_input("📅 Ngày đăng", datetime.today())
+        time = st.time_input("⏰ Giờ đăng", datetime.now().time())
+        post_time = datetime.combine(date, time)
 
-SCHEDULED_FILE = "scheduled_posts.csv"
+    elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
+        start_date = st.date_input("📅 Ngày bắt đầu", datetime.today())
+        end_date = st.date_input("📅 Ngày kết thúc", datetime.today() + timedelta(days=7))
+        post_time = st.time_input("⏰ Giờ đăng mỗi ngày", datetime.now().time())
 
-def generate_caption(product, keywords, platform):
-    prompt = f"""
-Bạn là chuyên gia nội dung sáng tạo cho thương hiệu gốm thủ công cao cấp.
+    if st.button("✨ Xử lý bài đăng"):
+        if not product_name or not keywords:
+            st.warning("⚠️ Vui lòng nhập đủ thông tin.")
 
-Hãy viết một **bài viết marketing dài khoảng 100–150 từ** phù hợp đăng trên {platform}, để giới thiệu sản phẩm **{product}**, sử dụng tinh tế các từ khóa: {keywords}.
+        elif mode == "📅 Tự động đúng giờ":
+            with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow([
+                    product_name,
+                    keywords,
+                    platform,
+                    post_time.strftime("%H:%M"),
+                    os.getenv("FB_PAGE_TOKEN"),
+                    os.getenv("FB_PAGE_ID"),
+                    "once"
+                ])
+            st.success(f"📅 Đã lên lịch đăng vào {post_time.strftime('%d/%m/%Y %H:%M')}")
 
-Yêu cầu:
-- Giọng văn mộc mạc, sâu sắc, truyền cảm hứng
-- Lồng ghép cảm xúc, triết lý sống chậm, yêu nét đẹp truyền thống
-- Không quá bán hàng. Tập trung gợi cảm giác, không gian, cảm xúc người dùng
-- Có thể mở đầu bằng một hình ảnh hoặc cảm nhận đời thường
-- Kết bài nhẹ nhàng, có thể đặt câu hỏi gợi mở
-- Gắn hashtag cuối bài. Không liệt kê hashtag quá dài
+        elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
+            current_day = start_date
+            while current_day <= end_date:
+                auto_caption = generate_caption(product_name, keywords, platform)
+                with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
+                    writer = csv.writer(f)
+                    writer.writerow([
+                        product_name,
+                        keywords,
+                        platform,
+                        post_time.strftime("%H:%M"),
+                        os.getenv("FB_PAGE_TOKEN"),
+                        os.getenv("FB_PAGE_ID"),
+                        "daily",
+                        auto_caption.replace("\n", " ")
+                    ])
+                current_day += timedelta(days=1)
+            st.success(f"🤖 Đã lên lịch tự động tạo & đăng bài từ {start_date} đến {end_date} lúc {post_time.strftime('%H:%M')}")
 
-Viết 1 bài duy nhất.
-"""
-    try:
-        response = client.chat.completions.create(
-            model="openai/gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.95
-        )
-        return response.choices[0].message.content.strip()
-    except OpenAIError as e:
-        return f"⚠️ Lỗi GPT: {e}"
+        else:
+            caption = generate_caption(product_name, keywords, platform)
+            st.text_area("📋 Nội dung đề xuất", caption, height=150)
+            st.session_state.posts.append({
+                "id": str(uuid.uuid4())[:8],
+                "product": product_name,
+                "platform": platform,
+                "caption": caption,
+                "time": "chờ duyệt",
+                "likes": 0, "comments": 0, "shares": 0, "reach": 0
+            })
+            st.success("✅ Đã lưu bài viết để bạn duyệt & đăng sau!")
 
-def post_to_facebook(caption, token, page_id):
-    url = f"https://graph.facebook.com/{page_id}/feed"
-    params = {
-        "message": caption,
-        "access_token": token
-    }
-    response = requests.post(url, params=params)
-    return response.status_code == 200
-
-def run_scheduler():
-    if not os.path.exists(SCHEDULED_FILE):
-        print("⚠️ Chưa có file scheduled_posts.csv")
-        return
-
-    new_rows = []
-    now = datetime.now()
-
-    with open(SCHEDULED_FILE, "r", encoding="utf-8") as file:
-        reader = csv.reader(file)
-        for row in reader:
-            if len(row) < 7:
-                continue  # Bỏ qua dòng lỗi
-            product, keywords, platform, time_str, token, page_id, repeat = row
-            post_time = datetime.strptime(time_str, "%H:%M")
-            today_post_time = now.replace(hour=post_time.hour, minute=post_time.minute, second=0, microsecond=0)
-
-            if now >= today_post_time and now < today_post_time + timedelta(minutes=3):
-                print(f"📝 Đang sinh nội dung cho {product}...")
-                caption = generate_caption(product, keywords, platform)
-                print(f"⏰ Đăng bài lúc {today_post_time.strftime('%H:%M')}...")
-                success = post_to_facebook(caption, token, page_id)
-                if success:
-                    print("✅ Đăng thành công!")
-                else:
-                    print("❌ Lỗi đăng bài.")
-
-            new_rows.append(row)  # Luôn giữ lại để lặp mỗi ngày
-
-    with open(SCHEDULED_FILE, "w", encoding="utf-8", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerows(new_rows)
-
-if __name__ == "__main__":
-    run_scheduler()
+    if st.session_state.posts:
+        st.markdown("### 📑 Danh sách bài đăng chờ duyệt")
+        st.dataframe(pd.DataFrame(st.session_state.posts))
+    else:
+        st.info("Chưa có bài viết nào.")
