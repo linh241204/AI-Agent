@@ -149,12 +149,6 @@ with tab1:
             st.success("✅ Đã lưu bài viết để duyệt thủ công.")
 
 
-
-
-
-
-
-
 with tab2:
     st.header("📊 Hiệu quả bài viết")
     if st.session_state.posts:
@@ -165,16 +159,25 @@ with tab2:
                 df.at[i, 'comments'] = st.number_input(f"💬 Comments #{i}", value=int(row['comments']), key=f"comments_{i}")
                 df.at[i, 'shares'] = st.number_input(f"🔁 Shares #{i}", value=int(row['shares']), key=f"shares_{i}")
                 df.at[i, 'reach'] = st.number_input(f"📣 Reach #{i}", value=int(row['reach']), key=f"reach_{i}")
+                df.at[i, 'reactions'] = st.number_input(f"👍 Thả cảm xúc #{i}", value=int(row.get('reactions', 0)), key=f"reactions_{i}")
+
         st.metric("Tổng Reach", df["reach"].sum())
         st.metric("Tổng Likes", df["likes"].sum())
         st.metric("Tổng Comments", df["comments"].sum())
         st.metric("Tổng Shares", df["shares"].sum())
+        st.metric("Tổng Reactions", df["reactions"].sum())
 
         fig, ax = plt.subplots()
-        df.groupby("platform")[["likes", "comments", "shares"]].sum().plot(kind="bar", ax=ax)
+        df.groupby("platform")[["likes", "comments", "shares", "reactions"]].sum().plot(kind="bar", ax=ax)
         st.pyplot(fig)
     else:
         st.info("Chưa có dữ liệu bài viết.")
+
+
+
+
+
+
 
 with tab3:
     st.header("🎯 Gợi ý chiến lược")
