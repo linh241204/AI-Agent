@@ -66,19 +66,30 @@ with tab1:
         date = st.date_input("📅 Ngày đăng", datetime.today())
         time = st.time_input("⏰ Giờ đăng", datetime.now().time())
         post_time = datetime.combine(date, time)
-        caption = generate_caption(product_name, keywords, platform)
-        st.text_area("📋 Nội dung đề xuất", caption, height=150)
 
     elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
         start_date = st.date_input("📅 Ngày bắt đầu đăng tự động", datetime.today())
         end_date = st.date_input("📅 Ngày kết thúc", datetime.today() + timedelta(days=7))
         post_time = st.time_input("⏰ Giờ đăng mỗi ngày", datetime.now().time())
 
+    def get_next_image(product_name):
+        df = pd.read_csv("image_map.csv")
+        matches = df[df["product_name"] == product_name]
+        if matches.empty:
+            return ""
+        used = st.session_state.get("used_images", {})
+        i = used.get(product_name, 0) % len(matches)
+        used[product_name] = i + 1
+        st.session_state["used_images"] = used
+        return matches.iloc[i]["image_path"]
+
     if st.button("✨ Xử lý bài đăng"):
         if not product_name or not keywords:
             st.warning("⚠️ Vui lòng nhập đủ thông tin.")
 
         elif mode == "📅 Tự động đúng giờ":
+            caption = generate_caption(product_name, keywords, platform)
+            image_path = get_next_image(product_name)
             with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow([
@@ -89,15 +100,18 @@ with tab1:
                     os.getenv("FB_PAGE_TOKEN"),
                     os.getenv("FB_PAGE_ID"),
                     "once",
-                    date.strftime("%Y-%m-%d"),
-                    caption.replace("\n", " ")
+                    post_time.strftime("%Y-%m-%d"),
+                    caption.replace("\n", " "),
+                    image_path
                 ])
+            st.text_area("📋 Nội dung đề xuất", caption, height=150)
             st.success(f"📅 Đã lên lịch đăng vào {post_time.strftime('%d/%m/%Y %H:%M')}")
 
         elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
             current_day = start_date
             while current_day <= end_date:
                 auto_caption = generate_caption(product_name, keywords, platform)
+                image_path = get_next_image(product_name)
                 with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
                     writer = csv.writer(f)
                     writer.writerow([
@@ -109,7 +123,8 @@ with tab1:
                         os.getenv("FB_PAGE_ID"),
                         "daily",
                         current_day.strftime("%Y-%m-%d"),
-                        auto_caption.replace("\n", " ")
+                        auto_caption.replace("\n", " "),
+                        image_path
                     ])
                 current_day += timedelta(days=1)
             st.success(f"🤖 Đã lên lịch tự động tạo & đăng bài mỗi ngày từ {start_date} đến {end_date} lúc {post_time.strftime('%H:%M')}")
