@@ -32,12 +32,12 @@ Bạn là chuyên gia nội dung sáng tạo cho thương hiệu gốm thủ cô
 Hãy viết một **bài viết marketing dài khoảng 100–150 từ** phù hợp đăng trên {platform}, để giới thiệu sản phẩm **{product_name}**, sử dụng tinh tế các từ khóa: {keywords}.
 
 Yêu cầu:
-- Giọng văn mộc mạc, sâu sắc, truyền cảm hứng
+- Ngắt đoạn rõ ràng (xuống dòng sau mỗi 1–2 câu)
 - Lồng ghép cảm xúc, triết lý sống chậm, yêu nét đẹp truyền thống
-- Không quá bán hàng. Tập trung gợi cảm giác, không gian, cảm xúc người dùng
-- Có thể mở đầu bằng một hình ảnh hoặc cảm nhận đời thường
-- Kết bài nhẹ nhàng, có thể đặt câu hỏi gợi mở
-- Gắn hashtag cuối bài. Không liệt kê hashtag quá dài
+- Dùng biểu tượng cảm xúc phù hợp (🌿✨🧘🏽‍♀️🏺❤️…)
+- Giọng văn mộc mạc, truyền cảm hứng – không quá quảng cáo
+- Kết bài nhẹ nhàng, có thể đặt câu hỏi
+- Cuối bài **luôn có dòng hashtag**: #xuongbinhgom
 
 Viết 1 bài duy nhất.
 """
@@ -50,6 +50,7 @@ Viết 1 bài duy nhất.
         return response.choices[0].message.content.strip()
     except OpenAIError as e:
         return f"⚠️ Không gọi được GPT: {e}"
+
 
 # Tabs
 st.title("🧠 Trợ lý nội dung đa nền tảng")
