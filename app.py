@@ -12,10 +12,6 @@ from openai import OpenAI, OpenAIError
 # Tải biến môi trường
 load_dotenv()
 
-# Gán access token & page ID trực tiếp
-FB_PAGE_TOKEN = "EAASMk7sVKQ8BO8q9kUhe73q0pFsRhyedqzksZBgFkQfdDtWHCG3kDDHVaXOfLeZBKaYP6ss102fJ3WModXczUyWg8ZCbajYpfkW1P8pLoACn45rc9ZCzZAoR7SWqXyXlaiZCLm5NIZCXOB0JO4Bb6vNNWdaKquabc4STA1uV3MN7sVz57X7FYMVvGfyok67x9pAZBpOLtLMy1NtkZCwFmbFzNeo4pbdLO"
-FB_PAGE_ID = "112233445566778"
-
 # Tạo OpenAI client từ OpenRouter
 client = OpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
@@ -51,17 +47,24 @@ Viết 1 bài duy nhất.
 
 # Hàm đăng bài viết lên Facebook
 def post_to_facebook(caption, image_path):
-    url = f"https://graph.facebook.com/{FB_PAGE_ID}/photos"
+    url = f"https://graph.facebook.com/{os.getenv('FB_PAGE_ID')}/photos"
     with open(image_path, "rb") as img:
         files = {"source": img}
         data = {
             "caption": caption,
-            "access_token": FB_PAGE_TOKEN
+            "access_token": os.getenv("FB_TOKEN")
         }
-        response = requests.post(url, data=data, files=files)
-        return response.json()
+        return requests.post(url, data=data, files=files).json()
+
+# Placeholder cho Instagram và Threads
+def post_to_instagram(caption, image_path):
+    return {"status": "❌ Instagram API chưa được tích hợp"}
+
+def post_to_threads(caption, image_path):
+    return {"status": "❌ Threads chưa có API công khai"}
 
 # Tabs
+st.title("🧠 Trợ lý nội dung đa nền tảng")
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📝 Tạo nội dung", "📊 Hiệu quả", "🎯 Gợi ý chiến lược", "🔮 Dự báo", "📥 Bài chờ duyệt"
 ])
@@ -115,8 +118,8 @@ with tab1:
                     keywords,
                     platform,
                     post_time.strftime("%H:%M"),
-                    FB_PAGE_TOKEN,
-                    FB_PAGE_ID,
+                    os.getenv("FB_TOKEN"),
+                    os.getenv("FB_PAGE_ID"),
                     "once",
                     post_datetime.strftime("%Y-%m-%d"),
                     caption.replace("\n", " "),
@@ -137,8 +140,8 @@ with tab1:
                         keywords,
                         platform,
                         post_time.strftime("%H:%M"),
-                        FB_PAGE_TOKEN,
-                        FB_PAGE_ID,
+                        os.getenv("FB_TOKEN"),
+                        os.getenv("FB_PAGE_ID"),
                         "daily",
                         current_day.strftime("%Y-%m-%d"),
                         auto_caption.replace("\n", " "),
@@ -159,6 +162,11 @@ with tab1:
                 "likes": 0, "comments": 0, "shares": 0, "reach": 0
             })
             st.success("✅ Đã lưu bài viết để duyệt thủ công.")
+
+
+
+
+
 with tab2:
     st.header("📊 Hiệu quả bài viết")
     if st.session_state.posts:
