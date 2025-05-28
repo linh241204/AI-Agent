@@ -39,7 +39,9 @@ with tab1:
     product_name = st.text_input("Tên sản phẩm")
     keywords = st.text_input("Từ khóa (phân cách bằng dấu phẩy)", "gốm, decor, thủ công, mộc mạc")
     platform = st.selectbox("Nền tảng", ["Facebook", "Instagram", "Threads"])
-    post_time = st.datetime_input("Thời gian đăng", datetime.now() + timedelta(hours=1))
+    date = st.date_input("📅 Ngày đăng", datetime.today())
+time = st.time_input("⏰ Giờ đăng", datetime.now().time())
+post_time = datetime.combine(date, time)
 
     if st.button("✨ Sinh nội dung"):
         if product_name and keywords:
