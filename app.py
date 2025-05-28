@@ -80,13 +80,79 @@ elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
 
 else:  # 👀 Chờ duyệt thủ công
     post_date, post_time = None, None
+# Tabs chính
+st.set_page_config(layout="wide")
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "📝 Tạo nội dung", "📊 Hiệu quả", "🎯 Gợi ý chiến lược", "🔮 Dự báo", "📥 Bài chờ duyệt"
+])
 
-# Ví dụ: post_to_facebook("Test caption", "images/my_image.jpg")
+# Tab 2: Hiệu quả bài viết
+with tab2:
+    st.header("📊 Hiệu quả bài viết")
+    if os.path.exists("metrics.csv"):
+        df = pd.read_csv("metrics.csv")
+        st.dataframe(df)
+        st.metric("Tổng reach", df["reach"].sum())
+        st.metric("Tổng likes", df["likes"].sum())
+        st.metric("Tổng shares", df["shares"].sum())
+        fig, ax = plt.subplots()
+        df.groupby("platform")[["likes", "shares"]].sum().plot(kind="bar", ax=ax)
+        st.pyplot(fig)
+    else:
+        st.info("Chưa có dữ liệu hiệu quả bài viết.")
 
+# Tab 3: Gợi ý chiến lược
+with tab3:
+    st.header("🎯 Gợi ý chiến lược")
+    if os.path.exists("metrics.csv"):
+        df = pd.read_csv("metrics.csv")
+        prompt = f"""Dưới đây là dữ liệu hiệu quả bài viết:
+{df[['platform','caption','likes','shares','reach']].to_string(index=False)}
 
-# Bạn có thể thay các lệnh os.getenv("FB_PAGE_TOKEN") bằng FB_PAGE_TOKEN ở các nơi dùng để đăng Facebook
-# Ví dụ:
-# os.getenv("FB_PAGE_TOKEN") => FB_PAGE_TOKEN
-# os.getenv("FB_PAGE_ID") => FB_PAGE_ID
+Hãy đánh giá và gợi ý cải thiện nội dung bài viết.
+"""
+        if st.button("🧠 Gợi ý từ AI"):
+            try:
+                res = client.chat.completions.create(
+                    model="openai/gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.8
+                )
+                st.markdown(res.choices[0].message.content.strip())
+            except Exception as e:
+                st.error(f"❌ Lỗi AI: {e}")
+    else:
+        st.info("Chưa có dữ liệu để phân tích.")
 
-# Nhớ cập nhật cả phần scheduler nếu bạn muốn dùng access token này cho việc đăng tự động
+# Tab 4: Dự báo hiệu quả
+with tab4:
+    st.header("🔮 Dự báo hiệu quả bài viết")
+    caption = st.text_area("📋 Nội dung bài viết")
+    if st.button("📈 Dự báo"):
+        if caption:
+            prompt = f"""
+Bạn là chuyên gia digital marketing. Dưới đây là nội dung bài viết:
+"""
+            prompt += caption + """
+
+Dự báo hiệu quả và đưa ra lời khuyên cải thiện nếu cần.
+"""
+            try:
+                res = client.chat.completions.create(
+                    model="openai/gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.9
+                )
+                st.markdown(res.choices[0].message.content.strip())
+            except Exception as e:
+                st.error(f"❌ Lỗi khi gọi GPT: {e}")
+
+# Tab 5: Bài chờ duyệt
+with tab5:
+    st.header("📥 Danh sách bài viết chờ duyệt")
+    if os.path.exists("pending_posts.csv"):
+        df = pd.read_csv("pending_posts.csv")
+        st.dataframe(df)
+    else:
+        st.info("Không có bài viết nào đang chờ duyệt.")
+
