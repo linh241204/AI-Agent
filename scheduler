@@ -53,8 +53,12 @@ while True:
             # Chỉ đăng nếu đến giờ và mode hợp lệ
             if platform == "facebook" and mode in ["once", "daily"] and now >= scheduled_time:
                 print("🚀 Đang đăng bài...")
-                result = post_caption_to_facebook(page_id, token, caption.strip())
-                print("✅ Đã đăng:", result)
+               result = post_caption_to_facebook(page_id, token, caption.strip())
+                if "error" in result:
+                print("❌ Facebook trả lỗi:", result["error"])
+        else:
+    print("✅ Đã đăng thành công:", result)
+
             else:
                 updated_rows.append(row)
 
