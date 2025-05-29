@@ -1,79 +1,54 @@
-# scheduler.py
-import pandas as pd
-from datetime import datetime
+import csv
 import time
+from datetime import datetime
 import requests
-import os
+import streamlit as st
 
-# === Các cột của scheduled_posts.csv:
-# 0 product_name
-# 1 keywords
-# 2 platform
-# 3 time (HH:MM)
-# 4 token (FB_PAGE_TOKEN)
-# 5 page_id (FB_PAGE_ID)
-# 6 mode ("once" / "daily")
-# 7 date (YYYY-MM-DD)
-# 8 caption
-# 9 image_path
+# ====== Đọc access token & page ID từ secrets ======
+FB_PAGE_TOKEN = st.secrets["FB_PAGE_TOKEN"]
+FB_PAGE_ID = st.secrets["FB_PAGE_ID"]
 
-CSV_PATH = "scheduled_posts.csv"
-
-def post_to_facebook(page_id, token, caption, image_path=None):
-    url = f"https://graph.facebook.com/{page_id}/photos"
-    data = {
-        'access_token': token,
-        'caption': caption
+# ====== Hàm đăng bài lên Facebook ======
+def post_to_facebook(image_url, caption):
+    url = f"https://graph.facebook.com/v18.0/{FB_PAGE_ID}/photos"
+    payload = {
+        "url": image_url,
+        "caption": caption,
+        "access_token": FB_PAGE_TOKEN
     }
-    files = {'source': open(image_path, 'rb')} if image_path and os.path.exists(image_path) else None
+    res = requests.post(url, data=payload)
+    return res.json()
 
+# ====== Chạy kiểm tra định kỳ ======
+print("📡 Bắt đầu kiểm tra lịch đăng...")
+
+while True:
     try:
-        response = requests.post(url, data=data, files=files)
-        return response.status_code, response.json()
-    except Exception as e:
-        return 500, {"error": str(e)}
-
-def main_loop():
-    print("⏰ Scheduler is running...")
-
-    while True:
         now = datetime.now()
-        try:
-            df = pd.read_csv(CSV_PATH)
-        except FileNotFoundError:
-            print("⚠️ Chưa có file scheduled_posts.csv.")
-            time.sleep(60)
-            continue
+        updated_rows = []
 
-        updated = False
-        for i, row in df.iterrows():
-            if "status" in df.columns and row.get("status") == "done":
-                continue
+        with open("scheduled_posts.csv", "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if len(row) != 10:
+                    continue  # bỏ qua dòng lỗi
 
-            try:
-                post_datetime = datetime.strptime(f"{row['date']} {row['time']}", "%Y-%m-%d %H:%M")
-            except Exception as e:
-                print(f"❌ Lỗi định dạng thời gian ở dòng {i}: {e}")
-                continue
+                product, keywords, platform, time_str, token, page_id, mode, date_str, caption, image_url = row
+                scheduled_time = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
 
-            if 0 <= (now - post_datetime).total_seconds() < 60:
-                print(f"🚀 Đang đăng bài [{row['platform']}] - {row['product_name']}")
-                status_code, res = post_to_facebook(
-                    page_id=row['page_id'],
-                    token=row['token'],
-                    caption=row['caption'],
-                    image_path=row.get('image_path', None)
-                )
+                if scheduled_time <= now:
+                    print(f"🚀 Đăng bài: {caption[:30]}...")
+                    result = post_to_facebook(image_url, caption)
+                    print("✅ Kết quả:", result)
+                else:
+                    updated_rows.append(row)  # chưa đến giờ → giữ lại
 
-                print(f"📡 Kết quả: {status_code} - {res}")
+        # Ghi lại file, giữ các bài chưa đăng
+        with open("scheduled_posts.csv", "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(updated_rows)
 
-                df.at[i, "status"] = "done"
-                updated = True
+    except Exception as e:
+        print("❌ Lỗi khi xử lý lịch đăng:", e)
 
-        if updated:
-            df.to_csv(CSV_PATH, index=False)
-
-        time.sleep(60)
-
-if __name__ == "__main__":
-    main_loop()
+    time.sleep(60)  # kiểm tra mỗi phút
