@@ -57,12 +57,12 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📝 Tạo nội dung", "🔮 Dự báo", "📊 Hiệu quả", "🎯 Gợi ý chiến lược", "📥 Bài chờ duyệt"
 ])
 
-
+with tab 1:
  # 📋 Tab 1: Tạo nội dung với 3 chế độ đúng logic
 
-import uuid
-from datetime import datetime
-import csv
+    import uuid
+    from datetime import datetime
+    import csv
 
 if st.button("✨ Xử lý bài đăng"):
     if not product_name or not keywords:
@@ -219,12 +219,12 @@ Hãy:
 
 
 
-
+with tab 5:
 
   # 📥 Tab 5: Bài chờ duyệt — thêm nút duyệt và lên lịch đăng
 
-import csv
-from datetime import datetime, timedelta
+    import csv
+    from datetime import datetime, timedelta
 
 with tab5:
     st.header("📥 Bài chờ duyệt")
