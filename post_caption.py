@@ -42,13 +42,15 @@ while True:
         try:
             product, keywords, platform, time_str, token, page_id, mode, date_str, caption, image_path = row[:10]
 
+            # 🕒 Ghép ngày và giờ đã lên lịch
             scheduled_time = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
             print(f"\n📄 {product} | Nền tảng: {platform} | Lên lịch: {scheduled_time.strftime('%Y-%m-%d %H:%M')} | Hiện tại: {now.strftime('%Y-%m-%d %H:%M')}")
 
-            # Dùng mặc định nếu thiếu token/page_id
+            # Gắn token/page_id mặc định nếu bị để trống
             token = token.strip() or DEFAULT_ACCESS_TOKEN
             page_id = page_id.strip() or DEFAULT_PAGE_ID
 
+            # 🔔 Kiểm tra điều kiện đăng
             if platform.strip().lower() == "facebook" and now >= scheduled_time:
                 print("🚀 Đang đăng bài...")
                 result = post_caption_to_facebook(page_id, token, caption.strip())
