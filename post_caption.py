@@ -70,3 +70,4 @@ while True:
         print("❌ Không thể ghi lại file CSV:", e)
 
     time.sleep(60)
+python scheduler_ai_agent.py
