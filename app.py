@@ -57,7 +57,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📝 Tạo nội dung", "🔮 Dự báo", "📊 Hiệu quả", "🎯 Gợi ý chiến lược", "📥 Bài chờ duyệt"
 ])
 
-with tab 1:
+with tab1:
  # 📋 Tab 1: Tạo nội dung với 3 chế độ đúng logic
 
     import uuid
@@ -219,7 +219,7 @@ Hãy:
 
 
 
-with tab 5:
+with tab5:
 
   # 📥 Tab 5: Bài chờ duyệt — thêm nút duyệt và lên lịch đăng
 
