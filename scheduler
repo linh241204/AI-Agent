@@ -14,31 +14,54 @@ def post_caption_to_facebook(page_id, access_token, caption):
     response = requests.post(url, data=data)
     return response.json()
 
+print("🟢 Scheduler đang chạy... Kiểm tra bài viết mỗi 60 giây.")
+
 while True:
     now = datetime.now()
     updated_rows = []
 
-    with open(CSV_FILE, "r", encoding="utf-8") as f:
-        reader = csv.reader(f)
-        rows = list(reader)
+    try:
+        with open(CSV_FILE, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            rows = list(reader)
+    except Exception as e:
+        print("❌ Không thể đọc file CSV:", e)
+        time.sleep(60)
+        continue
 
     for row in rows:
         try:
-            (product, keywords, platform, time_str, token, page_id, mode, date_str, caption, image_path) = row
+            if len(row) < 10:
+                print("⚠️ Bỏ qua dòng không đủ cột:", row)
+                updated_rows.append(row)
+                continue
+
+            # Lấy đúng 10 cột
+            product, keywords, platform, time_str, token, page_id, mode, date_str, caption, image_path = row[:10]
+
             scheduled_time = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
-            if platform == "Facebook" and now >= scheduled_time:
-                res = post_caption_to_facebook(page_id, token, caption)
-                print("✅ Đã đăng:", res)
+
+            print(f"\n📄 Đang xét bài: {product} ({platform}) - {scheduled_time}")
+            print(f"🕒 Hiện tại: {now.strftime('%Y-%m-%d %H:%M')}")
+
+            if platform.strip().lower() == "facebook" and now >= scheduled_time:
+                print("🚀 Đang đăng bài lên Facebook...")
+                result = post_caption_to_facebook(page_id.strip(), token.strip(), caption.strip())
+                print("✅ Đã đăng:", result)
             else:
                 updated_rows.append(row)
+
         except Exception as e:
-            print("❌ Lỗi xử lý dòng:", row)
+            print("❌ Lỗi khi xử lý dòng:", row)
             print(e)
             updated_rows.append(row)
 
-    # Ghi lại file (xoá bài đã đăng)
-    with open(CSV_FILE, "w", encoding="utf-8", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerows(updated_rows)
+    # Ghi lại những bài chưa đến giờ
+    try:
+        with open(CSV_FILE, "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(updated_rows)
+    except Exception as e:
+        print("❌ Không thể ghi lại file CSV:", e)
 
-    time.sleep(60)  # kiểm tra mỗi 1 phút
+    time.sleep(60)
