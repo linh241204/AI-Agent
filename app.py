@@ -221,9 +221,30 @@ Hãy:
 
 
 with tab5:
+  # 📥 Tab 5: Bài chờ duyệt — thêm nút duyệt và lên lịch đăng
+
+import csv
+from datetime import datetime, timedelta
+
+with tab5:
     st.header("📥 Bài chờ duyệt")
     if st.session_state.posts:
         df = pd.DataFrame(st.session_state.posts)
+
+        for i, row in df.iterrows():
+            with st.expander(f"{row['platform']} | {row['caption'][:30]}..."):
+                st.write(row['caption'])
+                if st.button(f"✅ Duyệt và đăng ngay #{i}"):
+                    now = datetime.now() + timedelta(minutes=2)  # Lên lịch sau 2 phút
+                    with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
+                        writer = csv.writer(f)
+                        writer.writerow([
+                            row['product'], "", row['platform'], now.strftime("%H:%M"),
+                            FB_PAGE_TOKEN, FB_PAGE_ID, "once", now.strftime("%Y-%m-%d"),
+                            row['caption'].replace("\n", " "), ""
+                        ])
+                    st.success(f"📅 Đã duyệt và lên lịch đăng vào {now.strftime('%d/%m/%Y %H:%M')}")
+
         st.dataframe(df)
     else:
         st.info("Chưa có bài viết nào chờ duyệt.")
