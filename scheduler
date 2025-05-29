@@ -5,7 +5,7 @@ import time
 import requests
 from datetime import datetime
 
-CSV_FILE = "scheduled_posts.csv"
+CSV_FILE = "post_caption.py"
 DEFAULT_PAGE_ID = "2076435142631541"
 DEFAULT_ACCESS_TOKEN = "EAAbHPY5s4I4BO4lcMP4spMukwjZCmNdt0twbIGVdHAqUY6Q4OYThmtoFbOqx2tCw3yyZB8fKEnbxQbIAiNc7hvvzO4mVZBLnCpIOHvjaRRvpx9DbQjSUSWtPexZC1j812CZCu5DF6OFZB1sHmVSivK8cb9TvxGFmlJMgQKsF0zAsS0zdNZCbenZCaOZBnt2hZCw5zF0HrK"
 
