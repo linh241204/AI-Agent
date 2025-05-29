@@ -204,16 +204,14 @@ with tab3:
 with tab4:
     st.header("🎯 Gợi ý chiến lược cải thiện")
     if st.session_state.posts:
-df = pd.DataFrame(st.session_state.posts)
+        df = pd.DataFrame(st.session_state.posts)
 
-# Bổ sung các cột còn thiếu
-expected_cols = ['platform','caption','likes','comments','shares','reach','reactions']
-for col in expected_cols:
-    if col not in df.columns:
-        df[col] = 0  # hoặc "" nếu bạn muốn mặc định là chuỗi
+        expected_cols = ['platform','caption','likes','comments','shares','reach','reactions']
+        for col in expected_cols:
+            if col not in df.columns:
+                df[col] = 0
 
-# Tạo prompt an toàn
-prompt = f"""Dưới đây là dữ liệu hiệu quả các bài viết:
+        prompt = f"""Dưới đây là dữ liệu hiệu quả các bài viết:
 
 {df[expected_cols].to_string(index=False)}
 
@@ -221,9 +219,8 @@ Hãy:
 - So sánh hiệu quả thực tế với kỳ vọng thông thường
 - Gợi ý 3 chiến lược cải thiện nội dung, thời gian hoặc nền tảng phù hợp hơn
 - Ưu tiên đề xuất hành động cụ thể
-"""
+"""  # <<< đừng quên dấu kết thúc chuỗi này!
 
-"""
         if st.button("🧠 Gợi ý từ AI"):
             try:
                 response = client.chat.completions.create(
@@ -236,6 +233,7 @@ Hãy:
                 st.error(f"⚠️ Lỗi AI: {e}")
     else:
         st.info("Chưa có dữ liệu để phân tích chiến lược.")
+
 
 
 
