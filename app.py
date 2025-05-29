@@ -22,9 +22,7 @@ for key, val in def_states.items():
 
 # ====== Đọc token và ID từ secrets ======
 FB_PAGE_TOKEN = st.secrets["FB_PAGE_TOKEN"]
-IG_PAGE_TOKEN = st.secrets["IG_PAGE_TOKEN"]
 FB_PAGE_ID = st.secrets["FB_PAGE_ID"]
-IG_USER_ID = st.secrets["IG_USER_ID"]
 OPENROUTER_API_KEY = st.secrets["OPENROUTER_API_KEY"]
 
 # ====== Tạo OpenAI client ======
