@@ -58,57 +58,85 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 ])
 
 with tab1:
- # 📋 Tab 1: Tạo nội dung với 3 chế độ đúng logic
+    st.header("📝 Tạo nội dung bài đăng")
 
-    import uuid
-    from datetime import datetime
-    import csv
+    # Nhập liệu từ người dùng
+    product_name = st.text_input("Tên sản phẩm")
+    keywords = st.text_input("Từ khóa", "gốm, thủ công, mộc mạc, decor")
+    platform = st.selectbox("Nền tảng", ["Facebook", "Instagram"])
+    mode = st.radio("Chế độ đăng", ["📅 Tự động đúng giờ", "🤖 Tự động đăng đa dạng mỗi ngày", "👀 Chờ duyệt thủ công"])
 
-if st.button("✨ Xử lý bài đăng"):
-    if not product_name or not keywords:
-        st.warning("⚠️ Vui lòng nhập đủ thông tin.")
-    else:
-        caption = generate_caption(product_name, keywords, platform)
-        image_path = get_next_image(product_name)
+    # Tùy chọn thời gian
+    if mode == "📅 Tự động đúng giờ":
+        st.date_input("📅 Ngày đăng", value=st.session_state["post_date_once"], key="post_date_once")
+        st.time_input("⏰ Giờ đăng", value=st.session_state["post_time_once"], key="post_time_once", step=timedelta(minutes=1))
+    elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
+        st.date_input("📅 Ngày bắt đầu", value=st.session_state["start_date_loop"], key="start_date_loop")
+        st.date_input("📅 Ngày kết thúc", value=st.session_state["end_date_loop"], key="end_date_loop")
+        st.time_input("⏰ Giờ đăng mỗi ngày", value=st.session_state["post_time_loop"], key="post_time_loop", step=timedelta(minutes=1))
 
-        if mode == "📅 Tự động đúng giờ":
-            post_datetime = datetime.combine(st.session_state["post_date_once"], st.session_state["post_time_once"])
-            with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
-                writer = csv.writer(f)
-                writer.writerow([
-                    product_name, keywords, platform, st.session_state["post_time_once"].strftime("%H:%M"),
-                    FB_PAGE_TOKEN, FB_PAGE_ID, "once", post_datetime.strftime("%Y-%m-%d"),
-                    caption.replace("\n", " "), image_path
-                ])
-            st.text_area("📋 Nội dung đề xuất", caption, height=150)
-            st.success(f"📅 Đã lên lịch đăng vào {post_datetime.strftime('%d/%m/%Y %H:%M')}")
+    # Hàm lấy ảnh mẫu (nếu cần)
+    def get_next_image(product_name):
+        try:
+            df_img = pd.read_csv("image_map.csv")
+            matches = df_img[df_img["product_name"] == product_name]
+            if matches.empty:
+                return ""
+            used = st.session_state.get("used_images", {})
+            i = used.get(product_name, 0) % len(matches)
+            used[product_name] = i + 1
+            st.session_state["used_images"] = used
+            return matches.iloc[i]["image_path"]
+        except:
+            return ""
 
-        elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
-            current_day = st.session_state["start_date_loop"]
-            while current_day <= st.session_state["end_date_loop"]:
-                daily_caption = generate_caption(product_name, keywords, platform)
-                image_path = get_next_image(product_name)
+    # Xử lý khi bấm nút
+    if st.button("✨ Xử lý bài đăng"):
+        if not product_name or not keywords:
+            st.warning("⚠️ Vui lòng nhập đủ thông tin.")
+        else:
+            caption = generate_caption(product_name, keywords, platform)
+            image_path = get_next_image(product_name)
+
+            if mode == "📅 Tự động đúng giờ":
+                post_datetime = datetime.combine(st.session_state["post_date_once"], st.session_state["post_time_once"])
                 with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
                     writer = csv.writer(f)
                     writer.writerow([
-                        product_name, keywords, platform, st.session_state["post_time_loop"].strftime("%H:%M"),
-                        FB_PAGE_TOKEN, FB_PAGE_ID, "daily", current_day.strftime("%Y-%m-%d"),
-                        daily_caption.replace("\n", " "), image_path
+                        product_name, keywords, platform, st.session_state["post_time_once"].strftime("%H:%M"),
+                        FB_PAGE_TOKEN, FB_PAGE_ID, "once", post_datetime.strftime("%Y-%m-%d"),
+                        caption.replace("\n", " "), image_path
                     ])
-                current_day += timedelta(days=1)
-            st.success(f"🤖 Đã lên lịch đăng hàng ngày từ {st.session_state['start_date_loop']} đến {st.session_state['end_date_loop']}")
+                st.text_area("📋 Nội dung đề xuất", caption, height=150)
+                st.success(f"📅 Đã lên lịch đăng vào {post_datetime.strftime('%d/%m/%Y %H:%M')}")
 
-        else:  # 👀 Chờ duyệt thủ công
-            st.text_area("📋 Nội dung đề xuất", caption, height=150)
-            st.session_state.posts.append({
-                "id": str(uuid.uuid4())[:8],
-                "product": product_name,
-                "platform": platform,
-                "caption": caption,
-                "time": "chờ duyệt",
-                "likes": 0, "comments": 0, "shares": 0, "reach": 0
-            })
-            st.success("✅ Đã lưu bài viết để duyệt thủ công.")
+            elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
+                current_day = st.session_state["start_date_loop"]
+                while current_day <= st.session_state["end_date_loop"]:
+                    auto_caption = generate_caption(product_name, keywords, platform)
+                    image_path = get_next_image(product_name)
+                    with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
+                        writer = csv.writer(f)
+                        writer.writerow([
+                            product_name, keywords, platform, st.session_state["post_time_loop"].strftime("%H:%M"),
+                            FB_PAGE_TOKEN, FB_PAGE_ID, "daily", current_day.strftime("%Y-%m-%d"),
+                            auto_caption.replace("\n", " "), image_path
+                        ])
+                    current_day += timedelta(days=1)
+                st.success(f"🤖 Đã lên lịch đăng từ {st.session_state['start_date_loop']} đến {st.session_state['end_date_loop']}")
+
+            else:  # 👀 Chờ duyệt thủ công
+                st.text_area("📋 Nội dung đề xuất", caption, height=150)
+                st.session_state.posts.append({
+                    "id": str(uuid.uuid4())[:8],
+                    "product": product_name,
+                    "platform": platform,
+                    "caption": caption,
+                    "time": "chờ duyệt",
+                    "likes": 0, "comments": 0, "shares": 0, "reach": 0
+                })
+                st.success("✅ Đã lưu bài viết để duyệt thủ công.")
+
 
 
 
