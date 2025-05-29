@@ -66,12 +66,12 @@ with tab1:
 
     if mode == "📅 Tự động đúng giờ":
         st.date_input("📅 Ngày đăng", value=st.session_state["post_date_once"], key="post_date_once")
-        st.time_input("⏰ Giờ đăng", value=st.session_state["post_time_once"], key="post_time_once")
+        st.time_input("⏰ Giờ đăng", value=st.session_state["post_time_once"], key="post_time_once", step=timedelta(minutes=1))
 
     elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
         st.date_input("📅 Ngày bắt đầu", value=st.session_state["start_date_loop"], key="start_date_loop")
         st.date_input("📅 Ngày kết thúc", value=st.session_state["end_date_loop"], key="end_date_loop")
-        st.time_input("⏰ Giờ đăng mỗi ngày", value=st.session_state["post_time_loop"], key="post_time_loop")
+        st.time_input("⏰ Giờ đăng mỗi ngày", value=st.session_state["post_time_loop"], key="post_time_loop", step=timedelta(minutes=1))
 
     def get_next_image(product_name):
         df = pd.read_csv("image_map.csv")
@@ -128,6 +128,7 @@ with tab1:
                 "likes": 0, "comments": 0, "shares": 0, "reach": 0
             })
             st.success("✅ Đã lưu bài viết để duyệt thủ công.")
+
 
 
 with tab2:
