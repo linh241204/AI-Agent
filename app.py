@@ -70,10 +70,30 @@ with tab1:
     if mode == "📅 Tự động đúng giờ":
         st.date_input("📅 Ngày đăng", value=st.session_state["post_date_once"], key="post_date_once")
         st.time_input("⏰ Giờ đăng", value=st.session_state["post_time_once"], key="post_time_once", step=timedelta(minutes=1))
+        # ...
+    writer.writerow([
+    product_name, keywords, platform, st.session_state["post_time_once"].strftime("%H:%M"),
+    FB_PAGE_TOKEN, FB_PAGE_ID, "once", post_datetime.strftime("%Y-%m-%d"),
+    caption.replace("\n", " "), image_path # Đảm bảo image_path được ghi vào đây
+])
+# ...
     elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
         st.date_input("📅 Ngày bắt đầu", value=st.session_state["start_date_loop"], key="start_date_loop")
         st.date_input("📅 Ngày kết thúc", value=st.session_state["end_date_loop"], key="end_date_loop")
         st.time_input("⏰ Giờ đăng mỗi ngày", value=st.session_state["post_time_loop"], key="post_time_loop", step=timedelta(minutes=1))
+        # ...
+    while current_day <= st.session_state["end_date_loop"]:
+    auto_caption = generate_caption(product_name, keywords, platform) # Bạn có thể muốn caption giống nhau cho các ngày nếu cùng sản phẩm/từ khóa, hoặc tạo caption mới mỗi lần
+    image_path = get_next_image(product_name) # Lấy ảnh cho mỗi bài đăng hàng ngày
+    with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            product_name, keywords, platform, st.session_state["post_time_loop"].strftime("%H:%M"),
+            FB_PAGE_TOKEN, FB_PAGE_ID, "daily", current_day.strftime("%Y-%m-%d"),
+            auto_caption.replace("\n", " "), image_path # Đảm bảo image_path được ghi vào đây
+        ])
+    current_day += timedelta(days=1)
+# ...
 
     # Hàm lấy ảnh mẫu (nếu cần)
     def get_next_image(product_name):
@@ -263,7 +283,7 @@ with tab5:
             with st.expander(f"{row['platform']} | {row['caption'][:30]}..."):
                 st.write(row['caption'])
                 if st.button(f"✅ Duyệt và đăng ngay #{i}"):
-                    now = datetime.now() + timedelta(minutes=2)  # Lên lịch sau 2 phút
+                now = datetime.now() # Lấy thời gian hiện tại để đăng ngay
                     with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
                         writer = csv.writer(f)
                         writer.writerow([
@@ -276,3 +296,18 @@ with tab5:
         st.dataframe(df)
     else:
         st.info("Chưa có bài viết nào chờ duyệt.")
+        # Gọi hàm đăng bài trực tiếp
+    result = post_content_to_facebook(
+        page_id=FB_PAGE_ID, # Lấy từ st.secrets hoặc DEFAULT_PAGE_ID
+        access_token=FB_PAGE_TOKEN, # Lấy từ st.secrets hoặc DEFAULT_ACCESS_TOKEN
+        message=row['caption'],
+        image_url=current_image_path
+    )
+    if "error" not in result:
+        st.success(f"📅 Đã duyệt và đăng ngay lên Facebook! ID bài viết: {result.get('id')}")
+        # Xóa bài đã duyệt khỏi danh sách chờ duyệt (tùy chọn)
+        st.session_state.posts.pop(i)
+        st.rerun() # Refresh giao diện để thấy thay đổi
+    else:
+        st.error(f"❌ Lỗi khi đăng bài: {result.get('error', 'Lỗi không xác định')}")
+# ...
