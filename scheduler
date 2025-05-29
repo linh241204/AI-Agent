@@ -71,3 +71,8 @@ while True:
         print("❌ Không thể ghi lại file CSV:", e)
 
     time.sleep(60)
+print("🔍 Đang xét bài:", product)
+print("🕒 Giờ hiện tại:", now.strftime("%Y-%m-%d %H:%M"))
+print("📅 Giờ bài đăng:", scheduled_time.strftime("%Y-%m-%d %H:%M"))
+print("🎯 Đăng không?", now >= scheduled_time, "và mode =", mode)
+
