@@ -1,50 +1,44 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
-from dotenv import load_dotenv
-import os
+from datetime import datetime, timedelta, date, time
 import uuid
 import csv
 import requests
 from openai import OpenAI, OpenAIError
 
-# Tải biến môi trường
-load_dotenv()
+# ====== Khởi tạo session_state mặc định ======
+def_states = {
+    "post_date_once": date.today(),
+    "post_time_once": time(9, 0),
+    "start_date_loop": date.today(),
+    "end_date_loop": date.today(),
+    "post_time_loop": time(9, 0),
+    "posts": []
+}
+for key, val in def_states.items():
+    if key not in st.session_state:
+        st.session_state[key] = val
 
-# Gán access token & page ID cho từng nền tảng
-FB_PAGE_TOKEN = "EAASMk7sVKQ8BO8q9kUhe73q0pFsRhyedqzksZBgFkQfdDtWHCG3kDDHVaXOfLeZBKaYP6ss102fJ3WModXczUyWg8ZCbajYpfkW1P8pLoACn45rc9ZCzZAoR7SWqXyXlaiZCLm5NIZCXOB0JO4Bb6vNNWdaKquabc4STA1uV3MN7sVz57X7FYMVvGfyok67x9pAZBpOLtLMy1NtkZCwFmbFzNeo4pbdLO"
-IG_PAGE_TOKEN = "EAASMk7sVKQ8BOwDkLv44vEWgt9rYe9Ao0PfOYp2KsChz5U2usOpKatb6caWPObxvbOsqYhNwZCVi14DflW0HQKxdN06XZAiwRmW0jrIDo9O0Dui9H0VyXqtQN1xM7tQ066QMbkHSvXP9f4PnoHXFGBjBuPQo23vsitm7doUDZCmSfs8klUseVzVqNskH4qiQ6jjEgsGcJAAr2GAFpWhlpc2qwZDZD"
-THREADS_PAGE_TOKEN = IG_PAGE_TOKEN  # Giả định Threads chung với IG
-FB_PAGE_ID = "1280466033649935"
+# ====== Đọc token và ID từ secrets ======
+FB_PAGE_TOKEN = st.secrets["FB_PAGE_TOKEN"]
+IG_PAGE_TOKEN = st.secrets["IG_PAGE_TOKEN"]
+FB_PAGE_ID = st.secrets["FB_PAGE_ID"]
+IG_USER_ID = st.secrets["IG_USER_ID"]
+OPENROUTER_API_KEY = st.secrets["OPENROUTER_API_KEY"]
 
-# Tạo OpenAI client từ OpenRouter
+# ====== Tạo OpenAI client ======
 client = OpenAI(
-    api_key=os.getenv("OPENROUTER_API_KEY"),
+    api_key=OPENROUTER_API_KEY,
     base_url="https://openrouter.ai/api/v1"
 )
 
-# Hàm sinh caption bằng GPT
+# ====== Hàm sinh caption từ GPT ======
 def generate_caption(product_name, keywords, platform):
     prompt = f"""
 Bạn là chuyên gia nội dung sáng tạo cho thương hiệu gốm thủ công cao cấp.
-
-Hãy viết một **bài viết marketing truyền cảm hứng dài khoảng 150–200 từ**, phù hợp đăng trên {platform}, để giới thiệu sản phẩm **{product_name}**, sử dụng tinh tế các từ khóa: {keywords}.
-
-Yêu cầu:
-- Mở đầu bằng một hình ảnh hoặc khoảnh khắc đời thường gợi cảm xúc
-- Giọng văn mộc mạc, sâu lắng, truyền cảm hứng sống chậm, yêu nét đẹp giản dị
-- Khơi gợi mong muốn sở hữu sản phẩm một cách tự nhiên, tinh tế (không "bán hàng" trực diện)
-- Lồng ghép triết lý về không gian sống, sự kết nối giữa con người và thiên nhiên qua đồ gốm
-- Ngắt đoạn mạch lạc, dùng biểu tượng cảm xúc nhẹ nhàng (🌿✨🏺❤️…)
-- Kết bài sâu sắc, có thể gợi mở cảm xúc hoặc đặt câu hỏi
-
-Phần cuối bài:
-- Xuống dòng riêng và gắn khoảng 3–5 hashtag, trong đó:
-  - **Bắt buộc có hashtag: #xuongbinhgom**
-  - Các hashtag còn lại nên liên quan đến: sống chậm, thủ công, gốm mộc, trang trí nhà, cảm hứng nghệ thuật...
-
-Viết 1 bài duy nhất.
+Hãy viết một bài marketing truyền cảm hứng (~150–200 từ), phù hợp đăng trên {platform}, cho sản phẩm "{product_name}", dùng từ khóa: {keywords}.
+Giọng văn mộc mạc, sâu lắng, yêu nét đẹp giản dị. Kết thúc có hashtag #xuongbinhgom và 3-5 hashtag khác.
 """
     try:
         response = client.chat.completions.create(
@@ -53,34 +47,24 @@ Viết 1 bài duy nhất.
             temperature=0.95
         )
         caption = response.choices[0].message.content.strip()
-
         if "#xuongbinhgom" not in caption.lower():
             caption += "\n\n#xuongbinhgom"
-
         return caption
     except OpenAIError as e:
         return f"⚠️ Không gọi được GPT: {e}"
 
-
-
-
-
-# Tabs
-st.title("🧠 Trợ lý nội dung đa nền tảng")
+# ====== UI chính ======
+st.title("🧠 Trợ lý nội dung Facebook & Instagram")
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📝 Tạo nội dung", "🔮 Dự báo", "📊 Hiệu quả", "🎯 Gợi ý chiến lược",  "📥 Bài chờ duyệt"
+    "📝 Tạo nội dung", "🔮 Dự báo", "📊 Hiệu quả", "🎯 Gợi ý chiến lược", "📥 Bài chờ duyệt"
 ])
 
 with tab1:
     st.header("📝 Tạo nội dung bài đăng")
     product_name = st.text_input("Tên sản phẩm")
     keywords = st.text_input("Từ khóa", "gốm, thủ công, mộc mạc, decor")
-    platform = st.selectbox("Nền tảng", ["Facebook", "Instagram", "Threads"])
-
-    mode = st.radio("Chế độ đăng", [
-        "📅 Tự động đúng giờ",
-        "🤖 Tự động đăng đa dạng mỗi ngày",
-        "👀 Chờ duyệt thủ công"])
+    platform = st.selectbox("Nền tảng", ["Facebook", "Instagram"])
+    mode = st.radio("Chế độ đăng", ["📅 Tự động đúng giờ", "🤖 Tự động đăng đa dạng mỗi ngày", "👀 Chờ duyệt thủ công"])
 
     if mode == "📅 Tự động đúng giờ":
         st.date_input("📅 Ngày đăng", value=st.session_state["post_date_once"], key="post_date_once")
@@ -105,7 +89,6 @@ with tab1:
     if st.button("✨ Xử lý bài đăng"):
         if not product_name or not keywords:
             st.warning("⚠️ Vui lòng nhập đủ thông tin.")
-
         elif mode == "📅 Tự động đúng giờ":
             caption = generate_caption(product_name, keywords, platform)
             image_path = get_next_image(product_name)
@@ -113,16 +96,9 @@ with tab1:
             with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow([
-                    product_name,
-                    keywords,
-                    platform,
-                    st.session_state["post_time_once"].strftime("%H:%M"),
-                    FB_PAGE_TOKEN,
-                    FB_PAGE_ID,
-                    "once",
-                    post_datetime.strftime("%Y-%m-%d"),
-                    caption.replace("\n", " "),
-                    image_path
+                    product_name, keywords, platform, st.session_state["post_time_once"].strftime("%H:%M"),
+                    FB_PAGE_TOKEN, FB_PAGE_ID, "once", post_datetime.strftime("%Y-%m-%d"),
+                    caption.replace("\n", " "), image_path
                 ])
             st.text_area("📋 Nội dung đề xuất", caption, height=150)
             st.success(f"📅 Đã lên lịch đăng vào {post_datetime.strftime('%d/%m/%Y %H:%M')}")
@@ -135,19 +111,12 @@ with tab1:
                 with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
                     writer = csv.writer(f)
                     writer.writerow([
-                        product_name,
-                        keywords,
-                        platform,
-                        st.session_state["post_time_loop"].strftime("%H:%M"),
-                        FB_PAGE_TOKEN,
-                        FB_PAGE_ID,
-                        "daily",
-                        current_day.strftime("%Y-%m-%d"),
-                        auto_caption.replace("\n", " "),
-                        image_path
+                        product_name, keywords, platform, st.session_state["post_time_loop"].strftime("%H:%M"),
+                        FB_PAGE_TOKEN, FB_PAGE_ID, "daily", current_day.strftime("%Y-%m-%d"),
+                        auto_caption.replace("\n", " "), image_path
                     ])
                 current_day += timedelta(days=1)
-            st.success(f"🤖 Đã lên lịch đăng từ {st.session_state['start_date_loop']} đến {st.session_state['end_date_loop']} lúc {st.session_state['post_time_loop'].strftime('%H:%M')}")
+            st.success(f"🤖 Đã lên lịch đăng từ {st.session_state['start_date_loop']} đến {st.session_state['end_date_loop']}")
 
         else:
             caption = generate_caption(product_name, keywords, platform)
@@ -161,6 +130,7 @@ with tab1:
                 "likes": 0, "comments": 0, "shares": 0, "reach": 0
             })
             st.success("✅ Đã lưu bài viết để duyệt thủ công.")
+
 
 with tab2:
     st.header("🔮 Dự báo hiệu quả bài viết")
