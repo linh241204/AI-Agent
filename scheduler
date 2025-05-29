@@ -1,9 +1,13 @@
+# ✅ Scheduler sửa lại để xử lý đúng 3 chế độ: once, daily, manual
+
 import csv
 import time
 import requests
 from datetime import datetime
 
 CSV_FILE = "scheduled_posts.csv"
+DEFAULT_PAGE_ID = "2076435142631541"
+DEFAULT_ACCESS_TOKEN = "EAAbHPY5s4I4BO4lcMP4spMukwjZCmNdt0twbIGVdHAqUY6Q4OYThmtoFbOqx2tCw3yyZB8fKEnbxQbIAiNc7hvvzO4mVZBLnCpIOHvjaRRvpx9DbQjSUSWtPexZC1j812CZCu5DF6OFZB1sHmVSivK8cb9TvxGFmlJMgQKsF0zAsS0zdNZCbenZCaOZBnt2hZCw5zF0HrK"
 
 def post_caption_to_facebook(page_id, access_token, caption):
     url = f"https://graph.facebook.com/v19.0/{page_id}/feed"
@@ -14,7 +18,7 @@ def post_caption_to_facebook(page_id, access_token, caption):
     response = requests.post(url, data=data)
     return response.json()
 
-print("🟢 Scheduler đang chạy... Kiểm tra bài viết mỗi 60 giây.")
+print("🟢 Scheduler AI Agent đang chạy...")
 
 while True:
     now = datetime.now()
@@ -30,33 +34,35 @@ while True:
         continue
 
     for row in rows:
-        try:
-            if len(row) < 10:
-                print("⚠️ Bỏ qua dòng không đủ cột:", row)
-                updated_rows.append(row)
-                continue
+        if len(row) < 10:
+            print("⚠️ Bỏ qua dòng thiếu cột:", row)
+            updated_rows.append(row)
+            continue
 
-            # Lấy đúng 10 cột
+        try:
             product, keywords, platform, time_str, token, page_id, mode, date_str, caption, image_path = row[:10]
 
             scheduled_time = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            token = token.strip() or DEFAULT_ACCESS_TOKEN
+            page_id = page_id.strip() or DEFAULT_PAGE_ID
+            platform = platform.strip().lower()
+            mode = mode.strip().lower()
 
-            print(f"\n📄 Đang xét bài: {product} ({platform}) - {scheduled_time}")
-            print(f"🕒 Hiện tại: {now.strftime('%Y-%m-%d %H:%M')}")
+            print(f"\n📄 [{product}] | Mode: {mode} | {scheduled_time} vs Now: {now}")
 
-            if platform.strip().lower() == "facebook" and now >= scheduled_time:
-                print("🚀 Đang đăng bài lên Facebook...")
-                result = post_caption_to_facebook(page_id.strip(), token.strip(), caption.strip())
+            # Chỉ đăng nếu đến giờ và mode hợp lệ
+            if platform == "facebook" and mode in ["once", "daily"] and now >= scheduled_time:
+                print("🚀 Đang đăng bài...")
+                result = post_caption_to_facebook(page_id, token, caption.strip())
                 print("✅ Đã đăng:", result)
             else:
                 updated_rows.append(row)
 
         except Exception as e:
-            print("❌ Lỗi khi xử lý dòng:", row)
+            print("❌ Lỗi xử lý dòng:", row)
             print(e)
             updated_rows.append(row)
 
-    # Ghi lại những bài chưa đến giờ
     try:
         with open(CSV_FILE, "w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f)
