@@ -1,4 +1,13 @@
+import csv
+import time
 import requests
+from datetime import datetime
+
+CSV_FILE = "scheduled_posts.csv"
+
+# ✅ GẮN SẴN PAGE ID & ACCESS TOKEN
+DEFAULT_PAGE_ID = "2076435142631541"
+DEFAULT_ACCESS_TOKEN = "EAAbHPY5s4I4BO4lcMP4spMukwjZCmNdt0twbIGVdHAqUY6Q4OYThmtoFbOqx2tCw3yyZB8fKEnbxQbIAiNc7hvvzO4mVZBLnCpIOHvjaRRvpx9DbQjSUSWtPexZC1j812CZCu5DF6OFZB1sHmVSivK8cb9TvxGFmlJMgQKsF0zAsS0zdNZCbenZCaOZBnt2hZCw5zF0HrK"
 
 def post_caption_to_facebook(page_id, access_token, caption):
     url = f"https://graph.facebook.com/v19.0/{page_id}/feed"
@@ -9,11 +18,54 @@ def post_caption_to_facebook(page_id, access_token, caption):
     response = requests.post(url, data=data)
     return response.json()
 
-# ✅ THÔNG TIN ĐÃ GẮN
-page_id = "2076435142631541"
-access_token = "EAAbHPY5s4I4BO4lcMP4spMukwjZCmNdt0twbIGVdHAqUY6Q4OYThmtoFbOqx2tCw3yyZB8fKEnbxQbIAiNc7hvvzO4mVZBLnCpIOHvjaRRvpx9DbQjSUSWtPexZC1j812CZCu5DF6OFZB1sHmVSivK8cb9TvxGFmlJMgQKsF0zAsS0zdNZCbenZCaOZBnt2hZCw5zF0HrK"
-caption = "🌿 Đây là bài đăng thử nghiệm với caption duy nhất. Không có ảnh, nhưng vẫn mang thông điệp của #xuongbinhgom 💚"
+print("🟢 Đang chạy scheduler đăng bài từ AI Agent (mỗi 60 giây)...")
 
-# 📤 GỬI BÀI
-result = post_caption_to_facebook(page_id, access_token, caption)
-print(result)
+while True:
+    now = datetime.now()
+    updated_rows = []
+
+    try:
+        with open(CSV_FILE, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            rows = list(reader)
+    except Exception as e:
+        print("❌ Không thể đọc file CSV:", e)
+        time.sleep(60)
+        continue
+
+    for row in rows:
+        if len(row) < 10:
+            print("⚠️ Bỏ qua dòng thiếu cột:", row)
+            updated_rows.append(row)
+            continue
+
+        try:
+            product, keywords, platform, time_str, token, page_id, mode, date_str, caption, image_path = row[:10]
+
+            scheduled_time = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            print(f"\n📄 {product} | Nền tảng: {platform} | Lên lịch: {scheduled_time.strftime('%Y-%m-%d %H:%M')} | Hiện tại: {now.strftime('%Y-%m-%d %H:%M')}")
+
+            # Dùng mặc định nếu thiếu token/page_id
+            token = token.strip() or DEFAULT_ACCESS_TOKEN
+            page_id = page_id.strip() or DEFAULT_PAGE_ID
+
+            if platform.strip().lower() == "facebook" and now >= scheduled_time:
+                print("🚀 Đang đăng bài...")
+                result = post_caption_to_facebook(page_id, token, caption.strip())
+                print("✅ Kết quả:", result)
+            else:
+                updated_rows.append(row)
+
+        except Exception as e:
+            print("❌ Lỗi xử lý dòng:", row)
+            print(e)
+            updated_rows.append(row)
+
+    try:
+        with open(CSV_FILE, "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(updated_rows)
+    except Exception as e:
+        print("❌ Không thể ghi lại file CSV:", e)
+
+    time.sleep(60)
