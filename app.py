@@ -14,11 +14,6 @@ import io
 
 # ====== Khởi tạo session_state mặc định ======
 def_states = {
-    "post_date_once": date.today(),
-    "post_time_once": time(9, 0),
-    "start_date_loop": date.today(),
-    "end_date_loop": date.today(),
-    "post_time_loop": time(9, 0),
     "posts": []
 }
 for key, val in def_states.items():
@@ -162,8 +157,8 @@ with tab1:
 
     # Tùy chọn thời gian
     if mode == "📅 Tự động đúng giờ":
-        st.date_input("📅 Ngày đăng", value=st.session_state["post_date_once"], key="post_date_once")
-        st.time_input("⏰ Giờ đăng", value=st.session_state["post_time_once"], key="post_time_once", step=timedelta(minutes=1))
+        st.date_input("📅 Ngày đăng", value=date.today(), key="post_date_once")
+        st.time_input("⏰ Giờ đăng", value=time(9, 0), key="post_time_once", step=timedelta(minutes=1))
         # Chọn ảnh từ máy tính (drag & drop + Browse files)
         uploaded_image = st.file_uploader("Chọn ảnh từ máy tính", type=["jpg", "jpeg", "png"], accept_multiple_files=False)
         if uploaded_image:
@@ -176,9 +171,9 @@ with tab1:
             except Exception as e:
                 st.error(f"Tải ảnh lên không thành công: {e}")
     elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
-        st.date_input("📅 Ngày bắt đầu", value=st.session_state["start_date_loop"], key="start_date_loop")
-        st.date_input("📅 Ngày kết thúc", value=st.session_state["end_date_loop"], key="end_date_loop")
-        st.time_input("⏰ Giờ đăng mỗi ngày", value=st.session_state["post_time_loop"], key="post_time_loop", step=timedelta(minutes=1))
+        st.date_input("📅 Ngày bắt đầu", value=date.today(), key="start_date_loop")
+        st.date_input("📅 Ngày kết thúc", value=date.today(), key="end_date_loop")
+        st.time_input("⏰ Giờ đăng mỗi ngày", value=time(9, 0), key="post_time_loop", step=timedelta(minutes=1))
         # Không hiển thị chọn ảnh, chỉ đăng caption
     else:  # 👀 Chờ duyệt thủ công
         # Chọn ảnh từ máy tính (drag & drop + Browse files)
