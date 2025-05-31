@@ -52,9 +52,32 @@ while True:
             print(f"\n📄 [{product}] | Mode: {mode} | {scheduled_time} vs Now: {now}")
             print("🔍 Đang xét bài:", product)
 
-            if platform == "facebook" and mode in ["once", "daily"] and now >= scheduled_time:
+            if platform == "facebook" and mode in ["once", "daily", "manual"] and now >= scheduled_time:
                 print("🚀 Đang đăng bài...")
-                status, result = post_caption_to_facebook(page_id, token, caption.strip())
+                # Đăng bài:
+                # - once/manual: có ảnh (image_path)
+                # - daily: không đăng ảnh, chỉ caption
+                if mode == "daily":
+                    status, result = post_caption_to_facebook(page_id, token, caption.strip())
+                else:
+                    # Nếu image_path hợp lệ thì đăng kèm ảnh, không thì chỉ caption
+                    if image_path and image_path.startswith("https://drive.google.com/uc?id="):
+                        # Đăng dạng ảnh
+                        url = f"https://graph.facebook.com/v19.0/{page_id}/photos"
+                        data = {
+                            "message": caption.strip(),
+                            "url": image_path,
+                            "access_token": token
+                        }
+                        try:
+                            response = requests.post(url, data=data, timeout=10)
+                            status = response.status_code
+                            result = response.json()
+                        except requests.RequestException as e:
+                            status = None
+                            result = {"error": str(e)}
+                    else:
+                        status, result = post_caption_to_facebook(page_id, token, caption.strip())
                 if status != 200 or "error" in result:
                     print("❌ Facebook trả lỗi:", result)
                     updated_rows.append(row)
@@ -66,7 +89,7 @@ while True:
                         row[7] = new_time.strftime("%Y-%m-%d")
                         updated_rows.append(row)
                     else:
-                        print("🗑️ Bỏ qua bài đã đăng (once mode)")
+                        print("🗑️ Bỏ qua bài đã đăng (once/manual mode)")
             else:
                 updated_rows.append(row)
 

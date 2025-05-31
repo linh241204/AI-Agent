@@ -1,16 +1,25 @@
 import csv
 import time
 import requests
+import toml
 from datetime import datetime, timedelta # Import timedelta cho việc cập nhật ngày
 
 CSV_FILE = "scheduled_posts.csv"
 
 # ✅ GẮN SẴN PAGE ID & ACCESS TOKEN (nên lấy từ biến môi trường hoặc secrets nếu deploy)
-DEFAULT_PAGE_ID = "2076435142631541"
-DEFAULT_ACCESS_TOKEN = "EAAbHPY5s4I4BO4lcMP4spMukwjZCmNdt0twbIGVdHAqUY6Q4OYThmtoFbOqx2tCw3yyZB8fKEnbxQbIAiNc7hvvzO4mVZBLnCpIOHvjaRRvpx9DbQjSUSWtPexZC1j812CZCu5DF6OFZB1sHmVSivK8cb9TvxGFmlJMgKWsF0zAsS0zdNZCbenZCaOZBnt2hZCw5zF0HrK" # Token này có thể hết hạn, cần kiểm tra
+# Đọc secrets từ file .streamlit/secrets.toml
+with open(".streamlit/secrets.toml", "r", encoding="utf-8") as f:
+    secrets = toml.load(f)
+DEFAULT_PAGE_ID = secrets["FB_PAGE_ID"]
+DEFAULT_ACCESS_TOKEN = secrets["FB_PAGE_TOKEN"]
 
-def post_content_to_facebook(page_id, access_token, message, image_url=None):
+def post_content_to_facebook(page_id, access_token, message, image_url=None, show_warning=True):
     if image_url:
+        # Debug: Print the image URL being sent
+        print(f"[DEBUG] Đang gửi image_url tới Facebook: {image_url}")
+        # Chỉ cảnh báo nếu show_warning=True (tức là khi chọn ảnh từ máy)
+        if show_warning and not image_url.startswith("https://i.imgur.com/"):
+            print(f"[WARNING] Link ảnh không phải direct Imgur link (i.imgur.com): {image_url}")
         url = f"https://graph.facebook.com/v19.0/{page_id}/photos"
         data = {
             "message": message,
@@ -26,11 +35,12 @@ def post_content_to_facebook(page_id, access_token, message, image_url=None):
     
     try:
         response = requests.post(url, data=data)
+        print(f"[DEBUG] Facebook API response: {response.status_code} {response.text}")
         response.raise_for_status() # Báo lỗi nếu status code là 4xx/5xx
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"❌ Lỗi khi gọi API Facebook: {e}")
-        if response is not None:
+        if 'response' in locals() and response is not None:
             print(f"   Phản hồi lỗi từ Facebook: {response.text}")
         return {"error": str(e)}
 
