@@ -99,11 +99,9 @@ Giọng văn mộc mạc, sâu lắng, yêu nét đẹp giản dị. Kết thúc
 # - Nếu lỗi xác thực hoặc upload, sẽ raise exception.
 def upload_image_to_gdrive(image_bytes, filename):
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    SERVICE_ACCOUNT_FILE = 'gdrive_service_account.json'  # Đặt file này vào cùng thư mục app.py
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    creds = service_account.Credentials.from_service_account_info(
+        st.secrets["gdrive_service_account"], scopes=SCOPES)
     service = build('drive', 'v3', credentials=creds)
-
     file_metadata = {
         'name': filename,
         'mimeType': 'image/jpeg'
@@ -111,13 +109,11 @@ def upload_image_to_gdrive(image_bytes, filename):
     media = MediaIoBaseUpload(io.BytesIO(image_bytes), mimetype='image/jpeg')
     file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
     file_id = file.get('id')
-
     # Set quyền chia sẻ công khai
     service.permissions().create(
         fileId=file_id,
         body={'type': 'anyone', 'role': 'reader'}
     ).execute()
-
     # Lấy direct link (Google Drive direct link cho ảnh)
     direct_link = f'https://drive.google.com/uc?id={file_id}'
     return direct_link
@@ -143,9 +139,8 @@ def list_gdrive_images_recursive(service, folder_id):
 # - Khởi tạo service, gọi hàm đệ quy.
 def list_gdrive_images(folder_id):
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    SERVICE_ACCOUNT_FILE = 'gdrive_service_account.json'
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    creds = service_account.Credentials.from_service_account_info(
+        st.secrets["gdrive_service_account"], scopes=SCOPES)
     service = build('drive', 'v3', credentials=creds)
     return list_gdrive_images_recursive(service, folder_id)
 
@@ -168,9 +163,8 @@ def list_gdrive_tree(service, folder_id):
 # - Lưu ảnh đã chọn vào session_state.
 def pick_gdrive_image(folder_id, path=None):
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    SERVICE_ACCOUNT_FILE = 'gdrive_service_account.json'
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    creds = service_account.Credentials.from_service_account_info(
+        st.secrets["gdrive_service_account"], scopes=SCOPES)
     service = build('drive', 'v3', credentials=creds)
     if path is None:
         path = []
