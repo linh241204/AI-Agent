@@ -143,7 +143,7 @@ def list_gdrive_images_recursive(service, folder_id):
 # - Khởi tạo service, gọi hàm đệ quy.
 def list_gdrive_images(folder_id):
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    SERVICE_ACCOUNT_FILE = 'gdrive_service_account.json.json'
+    SERVICE_ACCOUNT_FILE = 'gdrive_service_account.json'
     creds = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     service = build('drive', 'v3', credentials=creds)
@@ -168,7 +168,7 @@ def list_gdrive_tree(service, folder_id):
 # - Lưu ảnh đã chọn vào session_state.
 def pick_gdrive_image(folder_id, path=None):
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    SERVICE_ACCOUNT_FILE = 'gdrive_service_account.json.json'
+    SERVICE_ACCOUNT_FILE = 'gdrive_service_account.json'
     creds = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     service = build('drive', 'v3', credentials=creds)
