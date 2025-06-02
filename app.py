@@ -99,7 +99,7 @@ Giọng văn mộc mạc, sâu lắng, yêu nét đẹp giản dị. Kết thúc
 # - Nếu lỗi xác thực hoặc upload, sẽ raise exception.
 def upload_image_to_gdrive(image_bytes, filename):
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    SERVICE_ACCOUNT_FILE = 'gdrive_service_account.json.json'  # Đặt file này vào cùng thư mục app.py
+    SERVICE_ACCOUNT_FILE = 'gdrive_service_account.json'  # Đặt file này vào cùng thư mục app.py
     creds = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     service = build('drive', 'v3', credentials=creds)
