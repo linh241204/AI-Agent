@@ -47,7 +47,7 @@ def get_gsheet_client():
 
 def ensure_sheet_header(worksheet, header):
     first_row = worksheet.row_values(1)
-    if first_row != header:
+    if not first_row or first_row != header:
         worksheet.clear()
         worksheet.append_row(header)
 
