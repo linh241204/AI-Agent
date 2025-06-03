@@ -19,6 +19,7 @@ import json
 import os
 import gspread
 from google.oauth2.service_account import Credentials
+import streamlit as st
 import toml
 
 cloudinary.config(
@@ -33,11 +34,22 @@ DATA_FILE = "posts_data.json"
 SPREADSHEET_ID = "1HUWXhKwglpJtp6yRuUfo2oy76uNKxDRx5n0RUG2q0hM"
 SHEET_NAME = "xuongbinhgom"
 
+HEADER = [
+    "product", "keywords", "platform", "time_str", "token",
+    "page_id", "mode", "date_str", "caption", "image_path"
+]
+
 def get_gsheet_client():
     scopes = ['https://www.googleapis.com/auth/spreadsheets']
     creds = Credentials.from_service_account_info(
         st.secrets["gdrive_service_account"], scopes=scopes)
     return gspread.authorize(creds)
+
+def ensure_sheet_header(worksheet, header):
+    first_row = worksheet.row_values(1)
+    if first_row != header:
+        worksheet.clear()
+        worksheet.append_row(header)
 
 # ====== Hàm lưu danh sách bài viết ======
 # Chức năng: Lưu danh sách bài viết vào file JSON.
@@ -332,6 +344,7 @@ with tab1:
                             gc = get_gsheet_client()
                             sh = gc.open_by_key(SPREADSHEET_ID)
                             worksheet = sh.worksheet(SHEET_NAME)
+                            ensure_sheet_header(worksheet, HEADER)
                             worksheet.append_row([
                                 product_name, keywords, platform, st.session_state["post_time_once"].strftime("%H:%M"),
                                 IG_TOKEN, IG_ID, "once", post_datetime.strftime("%Y-%m-%d"),
@@ -345,6 +358,7 @@ with tab1:
                             gc = get_gsheet_client()
                             sh = gc.open_by_key(SPREADSHEET_ID)
                             worksheet = sh.worksheet(SHEET_NAME)
+                            ensure_sheet_header(worksheet, HEADER)
                             worksheet.append_row([
                                 product_name, keywords, platform, st.session_state["post_time_once"].strftime("%H:%M"),
                                 FB_PAGE_TOKEN, FB_PAGE_ID, "once", post_datetime.strftime("%Y-%m-%d"),
@@ -365,6 +379,7 @@ with tab1:
                                 gc = get_gsheet_client()
                                 sh = gc.open_by_key(SPREADSHEET_ID)
                                 worksheet = sh.worksheet(SHEET_NAME)
+                                ensure_sheet_header(worksheet, HEADER)
                                 worksheet.append_row([
                                     product_name, keywords, platform, st.session_state["post_time_loop"].strftime("%H:%M"),
                                     IG_TOKEN, IG_ID, "daily", current_day.strftime("%Y-%m-%d"),
@@ -375,6 +390,7 @@ with tab1:
                                 gc = get_gsheet_client()
                                 sh = gc.open_by_key(SPREADSHEET_ID)
                                 worksheet = sh.worksheet(SHEET_NAME)
+                                ensure_sheet_header(worksheet, HEADER)
                                 worksheet.append_row([
                                     product_name, keywords, platform, st.session_state["post_time_loop"].strftime("%H:%M"),
                                     FB_PAGE_TOKEN, FB_PAGE_ID, "daily", current_day.strftime("%Y-%m-%d"),
@@ -829,7 +845,8 @@ with tab5:
     # --- Hiển thị danh sách bài chờ duyệt ---
     if not df.empty:
         st.markdown("<b>Danh sách bài viết chờ duyệt:</b>", unsafe_allow_html=True)
-        for i, row in df.iterrows():
+        for idx in range(len(df), 0, -1):  # Duyệt từ cuối lên đầu
+            row = df.iloc[idx-1]
             with st.expander(f"{row['platform']} | {row['caption'][:30]}..."):
                 st.write(row['caption'])
                 # Nếu có link ảnh, chỉ hiển thị link dạng clickable
@@ -838,7 +855,7 @@ with tab5:
                 cols = st.columns([2,2,2])
                 with cols[0]:
                     # Duyệt và đăng ngay bài viết
-                    if st.button(f"✅ Duyệt và đăng ngay #{i}"):
+                    if st.button(f"✅ Duyệt và đăng ngay #{idx}"):
                         with st.spinner("Đang xử lý..."):
                             now = datetime.now()
                             if row['platform'].lower() == "instagram":
@@ -850,19 +867,20 @@ with tab5:
                             gc = get_gsheet_client()
                             sh = gc.open_by_key(SPREADSHEET_ID)
                             worksheet = sh.worksheet(SHEET_NAME)
+                            ensure_sheet_header(worksheet, HEADER)
                             worksheet.append_row([
                                 row['product'], "", row['platform'], now.strftime("%H:%M"),
                                 token, page_id, "once", now.strftime("%Y-%m-%d"),
                                 row['caption'], row.get('image', "")
                             ])
-                            st.session_state.posts.pop(i)
+                            st.session_state.posts.pop(idx-1)
                             save_posts(st.session_state.posts)
                             st.rerun()
                 with cols[2]:
                     # Từ chối & Hủy bỏ bài viết
-                    if st.button(f"❌ Từ chối & Hủy bỏ #{i}"):
+                    if st.button(f"❌ Từ chối & Hủy bỏ #{idx}"):
                         with st.spinner("Đang xóa bài viết..."):
-                            st.session_state.posts.pop(i)
+                            st.session_state.posts.pop(idx-1)
                             save_posts(st.session_state.posts)
                             st.rerun()
         st.markdown("<b>Dữ liệu bài chờ duyệt:</b>", unsafe_allow_html=True)

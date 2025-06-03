@@ -5,6 +5,7 @@ import toml
 from datetime import datetime, timedelta
 import gspread
 from google.oauth2.service_account import Credentials
+import streamlit as st
 
 CSV_FILE = "scheduled_posts.csv"
 LOG_FILE = "log_scheduler.txt"
