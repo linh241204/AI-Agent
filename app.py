@@ -17,6 +17,9 @@ import cloudinary
 import cloudinary.uploader
 import json
 import os
+import gspread
+from google.oauth2.service_account import Credentials
+import toml
 
 cloudinary.config(
     cloud_name=st.secrets["CLOUDINARY_CLOUD_NAME"],
@@ -26,6 +29,15 @@ cloudinary.config(
 )
 
 DATA_FILE = "posts_data.json"
+
+SPREADSHEET_ID = "1HUWXhKwglpJtp6yRuUfo2oy76uNKxDRx5n0RUG2q0hM"
+SHEET_NAME = "xuongbinhgom"
+
+def get_gsheet_client():
+    scopes = ['https://www.googleapis.com/auth/spreadsheets']
+    creds = Credentials.from_service_account_info(
+        st.secrets["gdrive_service_account"], scopes=scopes)
+    return gspread.authorize(creds)
 
 # ====== Hàm lưu danh sách bài viết ======
 # Chức năng: Lưu danh sách bài viết vào file JSON.
@@ -317,25 +329,27 @@ with tab1:
                         if platform == "Instagram":
                             cloudinary_url = st.session_state.get("cloudinary_url", "")
                             post_datetime = datetime.combine(st.session_state["post_date_once"], st.session_state["post_time_once"])
-                            with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
-                                writer = csv.writer(f)
-                                writer.writerow([
-                                    product_name, keywords, platform, st.session_state["post_time_once"].strftime("%H:%M"),
-                                    IG_TOKEN, IG_ID, "once", post_datetime.strftime("%Y-%m-%d"),
-                                    caption, cloudinary_url
-                                ])
+                            gc = get_gsheet_client()
+                            sh = gc.open_by_key(SPREADSHEET_ID)
+                            worksheet = sh.worksheet(SHEET_NAME)
+                            worksheet.append_row([
+                                product_name, keywords, platform, st.session_state["post_time_once"].strftime("%H:%M"),
+                                IG_TOKEN, IG_ID, "once", post_datetime.strftime("%Y-%m-%d"),
+                                caption, cloudinary_url
+                            ])
                             st.text_area("📋 Nội dung đề xuất", caption, height=150)
                             st.success(f"📅 Đã lên lịch đăng Instagram vào {post_datetime.strftime('%d/%m/%Y %H:%M')}")
                         else:  # Facebook
                             image_path = st.session_state.get("gdrive_url", "")
                             post_datetime = datetime.combine(st.session_state["post_date_once"], st.session_state["post_time_once"])
-                            with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
-                                writer = csv.writer(f)
-                                writer.writerow([
-                                    product_name, keywords, platform, st.session_state["post_time_once"].strftime("%H:%M"),
-                                    FB_PAGE_TOKEN, FB_PAGE_ID, "once", post_datetime.strftime("%Y-%m-%d"),
-                                    caption, image_path
-                                ])
+                            gc = get_gsheet_client()
+                            sh = gc.open_by_key(SPREADSHEET_ID)
+                            worksheet = sh.worksheet(SHEET_NAME)
+                            worksheet.append_row([
+                                product_name, keywords, platform, st.session_state["post_time_once"].strftime("%H:%M"),
+                                FB_PAGE_TOKEN, FB_PAGE_ID, "once", post_datetime.strftime("%Y-%m-%d"),
+                                caption, image_path
+                            ])
                             st.text_area("📋 Nội dung đề xuất", caption, height=150)
                             st.success(f"📅 Đã lên lịch đăng Facebook vào {post_datetime.strftime('%d/%m/%Y %H:%M')}")
                     elif mode == "🤖 Tự động đăng đa dạng mỗi ngày":
@@ -348,25 +362,27 @@ with tab1:
                             if platform == "Instagram":
                                 # Lên lịch đăng IG: ghi vào file CSV với link Cloudinary (nếu muốn scheduler IG)
                                 cloudinary_url = st.session_state.get("cloudinary_url", "")
-                                with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
-                                    writer = csv.writer(f)
-                                    writer.writerow([
-                                        product_name, keywords, platform, st.session_state["post_time_loop"].strftime("%H:%M"),
-                                        IG_TOKEN, IG_ID, "daily", current_day.strftime("%Y-%m-%d"),
-                                        auto_caption, cloudinary_url
-                                    ])
+                                gc = get_gsheet_client()
+                                sh = gc.open_by_key(SPREADSHEET_ID)
+                                worksheet = sh.worksheet(SHEET_NAME)
+                                worksheet.append_row([
+                                    product_name, keywords, platform, st.session_state["post_time_loop"].strftime("%H:%M"),
+                                    IG_TOKEN, IG_ID, "daily", current_day.strftime("%Y-%m-%d"),
+                                    auto_caption, cloudinary_url
+                                ])
                             else:
                                 # Lên lịch đăng FB: ghi vào file CSV với link Drive
-                                with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
-                                    writer = csv.writer(f)
-                                    writer.writerow([
-                                        product_name, keywords, platform, st.session_state["post_time_loop"].strftime("%H:%M"),
-                                        FB_PAGE_TOKEN, FB_PAGE_ID, "daily", current_day.strftime("%Y-%m-%d"),
-                                        auto_caption, ""
-                                    ])
+                                gc = get_gsheet_client()
+                                sh = gc.open_by_key(SPREADSHEET_ID)
+                                worksheet = sh.worksheet(SHEET_NAME)
+                                worksheet.append_row([
+                                    product_name, keywords, platform, st.session_state["post_time_loop"].strftime("%H:%M"),
+                                    FB_PAGE_TOKEN, FB_PAGE_ID, "daily", current_day.strftime("%Y-%m-%d"),
+                                    auto_caption, ""
+                                ])
                             current_day += timedelta(days=1)
                         else:
-                            st.success(f"🤖 Đã lên lịch đăng từ {st.session_state['start_date_loop']} đến {st.session_state['end_date_loop']}")
+                            st.success(f"Đã lên lịch đăng từ {st.session_state['start_date_loop']} đến {st.session_state['end_date_loop']}")
                     else:  # 👀 Chờ duyệt thủ công
                         if platform == "Instagram":
                             image_path = st.session_state.get("cloudinary_url_manual", "")
@@ -831,13 +847,14 @@ with tab5:
                             else:
                                 token = FB_PAGE_TOKEN
                                 page_id = FB_PAGE_ID
-                            with open("scheduled_posts.csv", "a", encoding="utf-8", newline="") as f:
-                                writer = csv.writer(f)
-                                writer.writerow([
-                                    row['product'], "", row['platform'], now.strftime("%H:%M"),
-                                    token, page_id, "once", now.strftime("%Y-%m-%d"),
-                                    row['caption'], row.get('image', "")
-                                ])
+                            gc = get_gsheet_client()
+                            sh = gc.open_by_key(SPREADSHEET_ID)
+                            worksheet = sh.worksheet(SHEET_NAME)
+                            worksheet.append_row([
+                                row['product'], "", row['platform'], now.strftime("%H:%M"),
+                                token, page_id, "once", now.strftime("%Y-%m-%d"),
+                                row['caption'], row.get('image', "")
+                            ])
                             st.session_state.posts.pop(i)
                             save_posts(st.session_state.posts)
                             st.rerun()

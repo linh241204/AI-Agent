@@ -3,9 +3,13 @@ import time
 import requests
 import toml
 from datetime import datetime, timedelta
+import gspread
+from google.oauth2.service_account import Credentials
 
 CSV_FILE = "scheduled_posts.csv"
 LOG_FILE = "log_scheduler.txt"
+SPREADSHEET_ID = "1HUWXhKwglpJtp6yRuUfo2oy76uNKxDRx5n0RUG2q0hM"  # Thay bằng ID Google Sheet của bạn
+SHEET_NAME = "xuongbinhgom"  # Hoặc tên sheet bạn đặt
 
 # Đọc secrets từ file .streamlit/secrets.toml
 with open(".streamlit/secrets.toml", "r", encoding="utf-8") as f:
@@ -74,26 +78,29 @@ def post_content_to_instagram(ig_user_id, access_token, image_url, caption):
     print(f"[IG] API response: {publish_resp.status_code} {publish_resp.text}")
     return publish_resp.json()
 
+def get_gsheet_client():
+    # Đọc thông tin service account từ file .streamlit/secrets.toml
+    with open(".streamlit/secrets.toml", "r", encoding="utf-8") as f:
+        secrets = toml.load(f)
+    gdrive_service_account = secrets["gdrive_service_account"]
+    scopes = ['https://www.googleapis.com/auth/spreadsheets']
+    creds = Credentials.from_service_account_info(gdrive_service_account, scopes=scopes)
+    return gspread.authorize(creds)
+
 print("🟢 Scheduler AI Agent đang chạy... (kiểm tra mỗi 60 giây)")
 
 while True:
     now = datetime.now()
-    updated_rows = []
-    try:
-        with open(CSV_FILE, "r", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            rows = list(reader)
-    except FileNotFoundError:
-        print(f"ℹ️ File CSV '{CSV_FILE}' không tồn tại. Đang chờ bài đăng mới...")
-        time.sleep(60)
-        continue
-    except Exception as e:
-        print(f"❌ Không thể đọc file CSV: {e}")
-        time.sleep(60)
-        continue
-    for i, row in enumerate(rows):
+    gc = get_gsheet_client()
+    sh = gc.open_by_key(SPREADSHEET_ID)
+    worksheet = sh.worksheet(SHEET_NAME)
+    rows = worksheet.get_all_values()
+    header = rows[0]
+    data_rows = rows[1:]
+    updated_rows = [header]
+    for idx, row in enumerate(data_rows, start=2):  # start=2 vì dòng 1 là header
         if len(row) < 10:
-            print(f"⚠️ Bỏ qua dòng {i+1} thiếu cột hoặc sai định dạng: {row}")
+            print(f"⚠️ Bỏ qua dòng {idx} thiếu cột hoặc sai định dạng: {row}")
             updated_rows.append(row)
             continue
         try:
@@ -139,24 +146,23 @@ while True:
                 print(f"✅ Đã đăng thành công [{platform.upper()}] | {mode} | {scheduled_time}")
                 write_log(platform, mode, "SUCCESS", caption, image_path)
                 if mode == "once":
-                    continue  # Xóa dòng khỏi CSV
+                    worksheet.delete_rows(idx)
                 elif mode == "daily":
                     next_scheduled_time = scheduled_time + timedelta(days=1)
-                    row[7] = next_scheduled_time.strftime("%Y-%m-%d")
-                    updated_rows.append(row)
+                    worksheet.update_cell(idx, 8, next_scheduled_time.strftime("%Y-%m-%d"))
             else:
                 print(f"❌ Lỗi khi đăng [{platform.upper()}]: {result}")
                 write_log(platform, mode, "ERROR", caption, image_path, error_msg=str(result))
                 updated_rows.append(row)
         except Exception as e:
-            print(f"❌ Lỗi không xác định khi xử lý dòng {i+1}: {row}. Lỗi: {e}")
+            print(f"❌ Lỗi không xác định khi xử lý dòng {idx}: {row}. Lỗi: {e}")
             write_log(platform if 'platform' in locals() else 'unknown', mode if 'mode' in locals() else 'unknown', "ERROR", caption if 'caption' in locals() else '', image_path if 'image_path' in locals() else '', error_msg=str(e))
             updated_rows.append(row)
     try:
-        with open(CSV_FILE, "w", encoding="utf-8", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerows(updated_rows)
+        worksheet.resize(rows=1)
+        if updated_rows:
+            worksheet.append_rows(updated_rows)
     except Exception as e:
-        print(f"❌ Không thể ghi lại file CSV: {e}")
-        write_log('system', 'write_csv', 'ERROR', '', '', error_msg=str(e))
+        print(f"❌ Không thể ghi lại Google Sheets: {e}")
+        write_log('system', 'write_gsheet', 'ERROR', '', '', error_msg=str(e))
     time.sleep(60)
