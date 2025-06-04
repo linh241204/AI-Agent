@@ -20,6 +20,7 @@ DEFAULT_ACCESS_TOKEN = secrets["FB_PAGE_TOKEN"]
 IG_TOKEN = secrets.get("IG_TOKEN", "")
 IG_ID = secrets.get("IG_ID", "")
 
+# Hàm dùng để ghi log xem bài đăng ấy thành công hay thật bại.
 def write_log(platform, mode, status, caption, image_path, error_msg=None):
     with open(LOG_FILE, "a", encoding="utf-8") as logf:
         logf.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ")
@@ -29,6 +30,7 @@ def write_log(platform, mode, status, caption, image_path, error_msg=None):
         else:
             logf.write(f"  ERROR: {error_msg}\n  Caption: {caption[:80]}\n  Image: {image_path}\n\n")
 
+#Hàm dùng để đăng lên FB
 def post_content_to_facebook(page_id, access_token, message, image_url=None):
     if image_url:
         print(f"[DEBUG] Đang gửi image_url tới Facebook: {image_url}")
@@ -54,7 +56,8 @@ def post_content_to_facebook(page_id, access_token, message, image_url=None):
         if 'response' in locals() and response is not None:
             print(f"   Phản hồi lỗi từ Facebook: {response.text}")
         return {"error": str(e)}
-
+        
+#Hàm dùng để đăng lên IG
 def post_content_to_instagram(ig_user_id, access_token, image_url, caption):
     # Bước 1: Tạo media object
     create_url = f"https://graph.facebook.com/v19.0/{ig_user_id}/media"
@@ -79,6 +82,7 @@ def post_content_to_instagram(ig_user_id, access_token, image_url, caption):
     print(f"[IG] API response: {publish_resp.status_code} {publish_resp.text}")
     return publish_resp.json()
 
+#Hàm dùng để lấy thông tin từ gg sheet
 def get_gsheet_client():
     # Đọc thông tin service account từ file .streamlit/secrets.toml
     with open(".streamlit/secrets.toml", "r", encoding="utf-8") as f:
