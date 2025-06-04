@@ -22,6 +22,7 @@ from google.oauth2.service_account import Credentials
 import streamlit as st
 import toml
 
+DATA_FILE = "posts_data.json"
 # ====== Hàm lưu danh sách bài viết ======Add commentMore actions
 # Chức năng: Lưu danh sách bài viết vào file JSON.
 # - Ghi đè toàn bộ danh sách vào file.
