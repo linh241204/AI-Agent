@@ -22,51 +22,39 @@ from google.oauth2.service_account import Credentials
 import streamlit as st
 import toml
 
+#Cấu hình thư viện để up ảnh đăng lên ig
+#Mục đích: Giống gg drive, lấy ảnh từ đây để đăng lên ig
 cloudinary.config(
     cloud_name=st.secrets["CLOUDINARY_CLOUD_NAME"],
     api_key=st.secrets["CLOUDINARY_API_KEY"],
     api_secret=st.secrets["CLOUDINARY_API_SECRET"],
-    secure=True
-)
+    secure=True)
 
-DATA_FILE = "posts_data.json"
-
+#Id của sheet và đặt tên cho sheet
 SPREADSHEET_ID = "1HUWXhKwglpJtp6yRuUfo2oy76uNKxDRx5n0RUG2q0hM"
 SHEET_NAME = "xuongbinhgom"
 
+#Tạo dòng đầu tiên của sheet
 HEADER = [
     "product", "keywords", "platform", "time_str", "token",
     "page_id", "mode", "date_str", "caption", "image_path"
 ]
-
+#Hàm để lấy quyền truy cập vào gg sheet
 def get_gsheet_client():
     scopes = ['https://www.googleapis.com/auth/spreadsheets']
     creds = Credentials.from_service_account_info(
         st.secrets["gdrive_service_account"], scopes=scopes)
     return gspread.authorize(creds)
 
+#Streamlit app tạo ra dữ liệu và fill vào file excel sau đó dùng cronjob (chạy bằng python) để lấy dữ liệu từ file excel để đăng lên fb/ig. 
+#Streamlit k hỗ trợ cronjob nên phải dùng python ở máy
+#K dùng data base để lưu dữ liệu nên phải dùng cách này
+#Sử dụng để xóa dòng sau khi upload dữ liệu lên fb hoặc ig. Nếu đúng thì file excel sẽ k còn dữ liệu gì sau khi chạy, nhưng lỗi nên còn sót lại header
 def ensure_sheet_header(worksheet, header):
     first_row = worksheet.row_values(1)
     if not first_row or first_row != header:
         worksheet.clear()
         worksheet.append_row(header)
-
-# ====== Hàm lưu danh sách bài viết ======
-# Chức năng: Lưu danh sách bài viết vào file JSON.
-# - Ghi đè toàn bộ danh sách vào file.
-# - Dùng khi thêm/xóa/sửa bài chờ duyệt.
-def save_posts(posts, filename=DATA_FILE):
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(posts, f, ensure_ascii=False, indent=2)
-
-# ====== Hàm đọc danh sách bài viết ======
-# Chức năng: Đọc danh sách bài viết từ file JSON.
-# - Nếu file chưa tồn tại, trả về list rỗng.
-def load_posts(filename=DATA_FILE):
-    if os.path.exists(filename):
-        with open(filename, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
 
 # ====== Khởi tạo session_state mặc định ======
 def_states = {
