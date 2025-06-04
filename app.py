@@ -121,7 +121,7 @@ def upload_image_to_gdrive(image_bytes, filename):
     direct_link = f'https://drive.google.com/uc?id={file_id}'
     return direct_link
 
-# ====== Hàm đăng bài lên Instagram ======
+# ====== Hàm tạo content lên Instagram ======
 # Chức năng: Đăng bài lên Instagram qua API Graph.
 # - Tạo media object (ảnh + caption).
 # - Publish media object lên Instagram.
@@ -149,6 +149,7 @@ def post_content_to_instagram(ig_user_id, access_token, image_url, caption):
     publish_resp = requests.post(publish_url, data=publish_params)
     return publish_resp.json()
 
+# IG k nhận link từ drive về nên phải upload lên đây
 # ====== Hàm upload ảnh lên Cloudinary ======
 # Chức năng: Upload ảnh lên Cloudinary, trả về link public.
 # - Upload bằng preset.
@@ -231,7 +232,7 @@ with tab1:
                     st.session_state.gdrive_url_manual = gdrive_link
                 except Exception as e:
                     st.error(f"Tải ảnh lên Google Drive không thành công: {e}")
-
+    #Bắt đầu từ đây mới là luồng xử lí chạy (còn bên trên chỉ là dữ liệu)
     # --- Xử lý khi bấm nút "✨ Xử lý bài đăng" ---
     if st.button("✨ Xử lý bài đăng"):
         with st.spinner("Đang xử lý bài đăng..."):
@@ -239,7 +240,7 @@ with tab1:
             if not product_name or not keywords:
                 st.warning("⚠️ Vui lòng nhập đủ thông tin.")
             else:
-                # Gọi AI sinh caption
+                # Gọi AI sinh caption (Gọi thì mới nhảy vào hàm sinh caption bên trên để xử lí)
                 caption = generate_caption(product_name, keywords, platform)
                 if caption.startswith("⚠️") or "Không gọi được GPT" in caption:
                     st.error(caption)
@@ -472,6 +473,7 @@ with tab3:
     else:
         st.info("Chưa có dữ liệu bài viết.")
 
+#Tab 2,3,4 là lấy từ fb hết, ig hiện tại chưa làm đượcđược
 # ====== Xử lý tab2: Dự báo hiệu quả ======
 # Chức năng: Dự báo hiệu quả bài viết mới dựa trên caption, thời gian, dữ liệu lịch sử, AI phân tích.
 # - Nhập caption, chọn nền tảng, thời gian đăng.
@@ -571,7 +573,7 @@ Trả lời:
                     )
                     result = response.choices[0].message.content.strip()
 
-                    # Tách các phần dự báo
+                    # Tách các phần dự báo (do ban đầu viết thành 1 đoạn văn khó nhìn, nên chia ra cho đẹp)
                     lines = result.split('\n')
                     summary = ""
                     estimate = []
@@ -640,7 +642,7 @@ Trả lời:
 # - Hiển thị gợi ý định dạng đẹp, có icon, phân mục rõ ràng.
 with tab4:
     st.header("🎯 Gợi ý chiến lược cải thiện")
-    # --- Lấy dữ liệu Facebook nếu cần ---
+    # --- Lấy dữ liệu Facebook nếu cần (nếu dùng tab 2 r thì k cần lấy dữ liệu lại nữa, nếu reload lại mà bấm tab 4 luôn thì cần lấy lại dữ liệu) ---
     posts_data = st.session_state.get("fb_posts", [])
     def fetch_facebook_posts(page_id, access_token, limit=20):
         url = f"https://graph.facebook.com/v19.0/{page_id}/posts"
