@@ -22,6 +22,23 @@ from google.oauth2.service_account import Credentials
 import streamlit as st
 import toml
 
+# ====== Hàm lưu danh sách bài viết ======Add commentMore actions
+# Chức năng: Lưu danh sách bài viết vào file JSON.
+# - Ghi đè toàn bộ danh sách vào file.
+# - Dùng khi thêm/xóa/sửa bài chờ duyệt.
+def save_posts(posts, filename=DATA_FILE):
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(posts, f, ensure_ascii=False, indent=2)
+
+# ====== Hàm đọc danh sách bài viết ======
+# Chức năng: Đọc danh sách bài viết từ file JSON.
+# - Nếu file chưa tồn tại, trả về list rỗng.
+def load_posts(filename=DATA_FILE):
+    if os.path.exists(filename):
+        with open(filename, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+    
 #Cấu hình thư viện để up ảnh đăng lên ig
 #Mục đích: Giống gg drive, lấy ảnh từ đây để đăng lên ig
 cloudinary.config(
