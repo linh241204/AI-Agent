@@ -56,14 +56,6 @@ def ensure_sheet_header(worksheet, header):
         worksheet.clear()
         worksheet.append_row(header)
 
-# ====== Khởi tạo session_state mặc định ======
-def_states = {
-    "posts": load_posts()  # Đọc từ file thay vì []
-}
-for key, val in def_states.items():
-    if key not in st.session_state:
-        st.session_state[key] = val
-
 # ====== Đọc token và ID từ secrets ======
 FB_PAGE_TOKEN = st.secrets["FB_PAGE_TOKEN"]
 FB_PAGE_ID = st.secrets["FB_PAGE_ID"]
@@ -82,7 +74,6 @@ IG_ID = st.secrets.get("IG_ID", "")
 # ====== Hàm sinh caption từ GPT ======
 # Chức năng: Sinh caption marketing cho sản phẩm, nền tảng, từ khóa bằng AI GPT.
 # - Gửi prompt tới OpenAI, nhận về caption.
-# - Đảm bảo có hashtag #xuongbinhgom.
 # - Nếu lỗi API, trả về thông báo lỗi.
 def generate_caption(product_name, keywords, platform):
     prompt = f"""
@@ -103,12 +94,12 @@ Giọng văn mộc mạc, sâu lắng, yêu nét đẹp giản dị. Kết thúc
     except OpenAIError as e:
         return f"⚠️ Không gọi được GPT: {e}"
 
-# ====== Hàm upload ảnh lên Google Drive và lấy link công khai ======
-# Chức năng: Upload ảnh lên Google Drive bằng service account, trả về link public.
+# Hàm upload ảnh lên Google Drive và trả về link ảnh
+# Chức năng: Upload ảnh lên Google Drive bằng service account, trả về link ảnh.
 # - Tạo file ảnh trên Drive.
 # - Set quyền chia sẻ công khai.
-# - Trả về link direct.
-# - Nếu lỗi xác thực hoặc upload, sẽ raise exception.
+# - Trả về link ảnh.
+# - Nếu lỗi xác thực hoặc upload, sẽ trả về lỗi.
 def upload_image_to_gdrive(image_bytes, filename):
     SCOPES = ['https://www.googleapis.com/auth/drive']
     creds = service_account.Credentials.from_service_account_info(
@@ -129,77 +120,6 @@ def upload_image_to_gdrive(image_bytes, filename):
     # Lấy direct link (Google Drive direct link cho ảnh)
     direct_link = f'https://drive.google.com/uc?id={file_id}'
     return direct_link
-
-# ====== Hàm lấy danh sách ảnh từ thư mục Google Drive (đệ quy) ======
-# Chức năng: Lấy toàn bộ ảnh trong thư mục và các thư mục con.
-# - Trả về list ảnh (id, name, thumbnailLink).
-def list_gdrive_images_recursive(service, folder_id):
-    images = []
-    # Lấy file ảnh trong thư mục hiện tại (lấy cả thumbnailLink)
-    query_img = f"'{folder_id}' in parents and mimeType contains 'image/' and trashed = false"
-    results = service.files().list(q=query_img, fields="files(id, name, thumbnailLink)", pageSize=1000).execute()
-    images.extend(results.get('files', []))
-    # Lấy thư mục con
-    query_folder = f"'{folder_id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
-    subfolders = service.files().list(q=query_folder, fields="files(id)", pageSize=100).execute().get('files', [])
-    for sub in subfolders:
-        images.extend(list_gdrive_images_recursive(service, sub['id']))
-    return images
-
-# ====== Hàm lấy danh sách ảnh từ Google Drive ======
-# Chức năng: Lấy toàn bộ ảnh trong folder chỉ định.
-# - Khởi tạo service, gọi hàm đệ quy.
-def list_gdrive_images(folder_id):
-    SCOPES = ['https://www.googleapis.com/auth/drive']
-    creds = service_account.Credentials.from_service_account_info(
-        st.secrets["gdrive_service_account"], scopes=SCOPES)
-    service = build('drive', 'v3', credentials=creds)
-    return list_gdrive_images_recursive(service, folder_id)
-
-FOLDER_ID = '1PsIQuARS3WUerCrMMeW5gQiuTztRErun'  # Thay bằng ID thư mục Google Drive của bạn
-
-# ====== Hàm duyệt thư mục Google Drive dạng cây ======
-# Chức năng: Lấy danh sách thư mục con và ảnh trong một folder.
-# - Trả về 2 list: folders, images.
-def list_gdrive_tree(service, folder_id):
-    # Lấy thư mục con
-    query_folder = f"'{folder_id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
-    folders = service.files().list(q=query_folder, fields="files(id, name)", pageSize=100).execute().get('files', [])
-    # Lấy file ảnh trong thư mục hiện tại
-    query_img = f"'{folder_id}' in parents and mimeType contains 'image/' and trashed = false"
-    images = service.files().list(q=query_img, fields="files(id, name, thumbnailLink)", pageSize=1000).execute().get('files', [])
-    return folders, images
-
-# ====== Hàm UI chọn ảnh từ Google Drive ======
-# Chức năng: Hiển thị breadcrumb, cho phép duyệt thư mục, chọn ảnh.
-# - Lưu ảnh đã chọn vào session_state.
-def pick_gdrive_image(folder_id, path=None):
-    SCOPES = ['https://www.googleapis.com/auth/drive']
-    creds = service_account.Credentials.from_service_account_info(
-        st.secrets["gdrive_service_account"], scopes=SCOPES)
-    service = build('drive', 'v3', credentials=creds)
-    if path is None:
-        path = []
-    folders, images = list_gdrive_tree(service, folder_id)
-    # Breadcrumb
-    st.write(' / '.join([f"{p['name']}" for p in path] + ["..."]))
-    # Hiển thị thư mục con
-    for f in folders:
-        if st.button(f"📁 {f['name']}", key=f"folder_{f['id']}"):
-            pick_gdrive_image(f['id'], path + [f])
-            st.stop()
-    # Hiển thị ảnh trong thư mục
-    cols = st.columns(6)
-    for idx, img in enumerate(images):
-        with cols[idx % 6]:
-            thumb = img.get("thumbnailLink")
-            if thumb:
-                st.image(thumb+"&sz=128", width=80)
-            else:
-                st.markdown(':frame_with_picture:')
-            if st.button("Chọn", key=f"choose_{img['id']}"):
-                st.session_state.selected_gdrive_image = img
-            st.caption(img["name"])
 
 # ====== Hàm đăng bài lên Instagram ======
 # Chức năng: Đăng bài lên Instagram qua API Graph.
