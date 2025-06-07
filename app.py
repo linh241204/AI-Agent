@@ -22,6 +22,14 @@ from google.oauth2.service_account import Credentials
 import streamlit as st
 import toml
 
+// Hàm khởi tạo state
+def_states = {
+    "posts": load_posts()  # Đọc từ file thay vì []
+}
+for key, val in def_states.items():
+    if key not in st.session_state:
+        st.session_state[key] = val
+        
 DATA_FILE = "posts_data.json"
 # ====== Hàm lưu danh sách bài viết ======Add commentMore actions
 # Chức năng: Lưu danh sách bài viết vào file JSON.
