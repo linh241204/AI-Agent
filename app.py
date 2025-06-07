@@ -43,10 +43,20 @@ def save_posts(posts, filename=DATA_FILE):
 # Chức năng: Đọc danh sách bài viết từ file JSON.
 # - Nếu file chưa tồn tại, trả về list rỗng.
 def load_posts(filename=DATA_FILE):
-    if os.path.exists(filename):
-        with open(filename, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
+    try:
+        if os.path.exists(filename):
+            with open(filename, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                # Đảm bảo data là list
+                if isinstance(data, list):
+                    return data
+                else:
+                    return []
+        return []
+    except (json.JSONDecodeError, IOError, Exception) as e:
+        # Nếu có lỗi đọc file, trả về list rỗng
+        print(f"Lỗi đọc file {filename}: {e}")
+        return []
     
 #Cấu hình thư viện để up ảnh đăng lên ig
 #Mục đích: Giống gg drive, lấy ảnh từ đây để đăng lên ig
@@ -514,7 +524,13 @@ with tab2:
     date_forecast = st.date_input("📅 Ngày dự kiến đăng", datetime.today(), key="forecast_date")
     time_forecast = st.time_input("⏰ Giờ dự kiến đăng", datetime.now().time(), key="forecast_time")
     post_time_forecast = datetime.combine(date_forecast, time_forecast)
-    df = pd.DataFrame(st.session_state.posts)
+    
+    # Đảm bảo posts tồn tại và là list
+    posts_data = st.session_state.get("posts", [])
+    if not isinstance(posts_data, list):
+        posts_data = []
+    
+    df = pd.DataFrame(posts_data)
     for col in ["likes", "comments", "shares", "reach", "reactions"]:
         if col not in df.columns:
             df[col] = 0
@@ -773,7 +789,9 @@ with tab5:
     st.header("📥 Bài chờ duyệt")
     # --- Đọc file posts_data.json để lấy danh sách bài chờ duyệt ---
     with st.spinner("Đang tải dữ liệu ..."):
-        posts = load_posts()  # Luôn đọc file mới nhất
+        posts = load_posts() or []  # Luôn đọc file mới nhất và đảm bảo là list
+        # Cập nhật session_state để đồng bộ
+        st.session_state.posts = posts
         if posts:
             df = pd.DataFrame(posts)
         else:
