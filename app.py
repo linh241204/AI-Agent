@@ -356,6 +356,12 @@ with tab1:
                                 st.error("Bạn phải upload ảnh lên Google Drive cho Facebook!")
                                 st.stop()
                         st.text_area("📋 Nội dung đề xuất", caption, height=150)
+                        # Đảm bảo posts tồn tại và là list
+                        if "posts" not in st.session_state:
+                            st.session_state.posts = []
+                        elif not isinstance(st.session_state.posts, list):
+                            st.session_state.posts = []
+                        
                         st.session_state.posts.append({
                             "id": str(uuid.uuid4())[:8],
                             "product": product_name,
@@ -578,7 +584,8 @@ with tab2:
                         "created_time": post.get("created_time", None)
                     })
                 st.session_state.posts = new_posts
-                df = pd.DataFrame(st.session_state.posts)
+                # Cập nhật DataFrame với dữ liệu mới
+                df = pd.DataFrame(new_posts)
                 for col in ["likes", "comments", "shares", "reach", "reactions"]:
                     if col not in df.columns:
                         df[col] = 0
@@ -827,15 +834,19 @@ with tab5:
                                 token, page_id, "once", now.strftime("%Y-%m-%d"),
                                 row['caption'], row.get('image', "")
                             ])
-                            st.session_state.posts.pop(idx-1)
-                            save_posts(st.session_state.posts)
+                            # Đảm bảo posts tồn tại và là list
+                            if hasattr(st.session_state, 'posts') and isinstance(st.session_state.posts, list) and len(st.session_state.posts) >= idx:
+                                st.session_state.posts.pop(idx-1)
+                                save_posts(st.session_state.posts)
                             st.rerun()
                 with cols[2]:
                     # Từ chối & Hủy bỏ bài viết
                     if st.button(f"❌ Từ chối & Hủy bỏ #{idx}"):
                         with st.spinner("Đang xóa bài viết..."):
-                            st.session_state.posts.pop(idx-1)
-                            save_posts(st.session_state.posts)
+                            # Đảm bảo posts tồn tại và là list
+                            if hasattr(st.session_state, 'posts') and isinstance(st.session_state.posts, list) and len(st.session_state.posts) >= idx:
+                                st.session_state.posts.pop(idx-1)
+                                save_posts(st.session_state.posts)
                             st.rerun()
         st.markdown("<b>Dữ liệu bài chờ duyệt:</b>", unsafe_allow_html=True)
         st.dataframe(df)
