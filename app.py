@@ -22,9 +22,9 @@ from google.oauth2.service_account import Credentials
 import streamlit as st
 import toml
 
-// Hàm khởi tạo state
+# Hàm khởi tạo state
 def_states = {
-    "posts": load_posts()  # Đọc từ file thay vì []
+    "posts": load_posts() or []  # Đọc từ file thay vì []
 }
 for key, val in def_states.items():
     if key not in st.session_state:
